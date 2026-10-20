@@ -103,6 +103,13 @@ internal static class SelfTest
             var window = new WheelWindow(s.Mode, s.Wheel, s.Files.Select(f => new FileItem(f)).ToList(), settings, Source, (_, _) => { });
             window.RenderPreview(Path.Combine(outDir, s.Name + ".png"), s.Highlight);
             window.Close();
+            // Large, on transparent, for the README artwork (scripts/build-readme-art.py).
+            if (s.Name is "wheel-image-convert" or "wheel-image-tools" or "wheel-actions")
+            {
+                var art = new WheelWindow(s.Mode, s.Wheel, s.Files.Select(f => new FileItem(f)).ToList(), settings, Source, (_, _) => { });
+                art.RenderPreview(Path.Combine(outDir, "art-" + s.Name + ".png"), s.Highlight, clear: true);
+                art.Close();
+            }
             log.Add($"ok {Path.GetFileName(outDir)}/{s.Name}");
         }
 
@@ -471,13 +478,12 @@ internal static class SelfTest
         ? new LinearGradientBrush(Color.FromRgb(0x1F, 0x2A, 0x44), Color.FromRgb(0x3A, 0x2A, 0x4A), 45)
         : new LinearGradientBrush(Color.FromRgb(0xC9, 0xD8, 0xEE), Color.FromRgb(0xE9, 0xD9, 0xEE), 45);
 
-    public static void SaveElement(FrameworkElement element, string file)
+    public static void SaveElement(FrameworkElement element, string file, double scale = 1.5)
     {
         element.Measure(new Size(element.Width > 0 ? element.Width : 800, double.PositiveInfinity));
         var size = element.DesiredSize;
         element.Arrange(new Rect(size));
         element.UpdateLayout();
-        const double scale = 1.5;
         var bitmap = new RenderTargetBitmap((int)Math.Ceiling(size.Width * scale), (int)Math.Ceiling(size.Height * scale), 96 * scale, 96 * scale, PixelFormats.Pbgra32);
         bitmap.Render(element);
         var encoder = new PngBitmapEncoder();

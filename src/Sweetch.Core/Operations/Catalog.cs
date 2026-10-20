@@ -372,10 +372,11 @@ public static class Catalog
 
         foreach (var (target, label) in new[] { ("zip", "ZIP"), ("tar.gz", "TAR.GZ") })
         {
-            ops.Add(new BatchOperation($"pack.{target}", WheelKind.Tools, T("Archive", "В архив"), Glyphs.Pack, _ => true,
+            // The format goes in the name: both are on the wheel at once, and slices show no subtitle.
+            ops.Add(new BatchOperation($"pack.{target}", WheelKind.Tools, T($"To {label}", $"В {label}"), Glyphs.Pack, _ => true,
                 async (items, ctx) => [await OutputPaths.ProduceAsync(ctx.OutputDirFor(items[0].Path), ArchiveBackend.ArchiveNameFor(items), target,
                     tmp => ArchiveBackend.PackAsync(items.Select(i => i.Path).ToList(), tmp, target, ctx.CancellationToken))],
-                subtitle: label));
+                subtitle: T("archive", "архив")));
         }
     }
 }

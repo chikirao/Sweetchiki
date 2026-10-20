@@ -9,7 +9,7 @@ internal static class Brand
     public const string Trc20 = "TQHTy7kbk3ngYTUfrTpEeSi3hP38tnqJNU";
 
     /// <summary>The author of this fork and its redesign.</summary>
-    public const string ForkAuthor = "Chikirao";
+    public const string ForkAuthor = "chikirao";
     public const string ForkDonatePay = "https://donatepay.ru/don/1539219";
     public const string ForkTrc20 = "TCNLG4tJcduTBNgGc7NeYBBNAJkx9Zhc7c";
 }

@@ -251,17 +251,17 @@ internal sealed class WheelWindow : Window
         Close();
     }
 
-    /// <summary>Renders the wheel to a PNG without showing it (used by --self-test).</summary>
-    public void RenderPreview(string file, int highlight)
+    /// <summary>Renders the wheel to a PNG without showing it (used by --self-test); <paramref name="clear"/> leaves the background transparent.</summary>
+    public void RenderPreview(string file, int highlight, bool clear = false)
     {
         if (highlight >= 0 && highlight < _ops.Count)
             SetHighlight(highlight);
         Content = null;
-        var root = new Grid { Background = SelfTest.Desktop(), Width = Size, Height = Size };
+        var root = new Grid { Background = clear ? Brushes.Transparent : SelfTest.Desktop(), Width = Size, Height = Size };
         root.Children.Add(_canvas);
         _canvas.HorizontalAlignment = HorizontalAlignment.Center;
         _canvas.VerticalAlignment = VerticalAlignment.Center;
-        SelfTest.SaveElement(root, file);
+        SelfTest.SaveElement(root, file, clear ? 3 : 1.5);
     }
 
     // ------------------------------------------------------------------ data
