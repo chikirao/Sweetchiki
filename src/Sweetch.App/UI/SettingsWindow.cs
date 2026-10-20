@@ -214,7 +214,8 @@ internal sealed partial class SettingsWindow : Window
         var nav = new StackPanel();
         foreach (var page in Enum.GetValues<SettingsPage>())
             nav.Children.Add(NavItem(page));
-        dock.Children.Add(nav);
+        // Scrolls when the window is too short for every page plus the support tile.
+        dock.Children.Add(new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Content = nav, Margin = new Thickness(0, 0, 0, 12) });
 
         return new Border
         {
@@ -407,6 +408,8 @@ internal sealed partial class SettingsWindow : Window
                 tile.Opacity = 0.55;
             tiles.Children.Add(tile);
         }
+        // Three across when there is room, otherwise stacked, so the key picker and icon never clip.
+        tiles.SizeChanged += (_, e) => tiles.Columns = e.NewSize.Width < 660 ? 1 : 3;
         root.Children.Add(tiles);
 
         root.Children.Add(SectionHeader(T("Gesture", "Жест")));
