@@ -48,11 +48,13 @@ def mark(px: int) -> Image.Image:
     s = px * SUPER
     img = Image.new("RGBA", (s, s), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
-    draw.polygon(squircle(s), fill=INK)
     u = s / 100  # design units
     small = px <= 24
-    # Tiny icons get fatter slices and wider gaps so the three colours stay apart.
-    r_out, r_in, gap, corner = (41, 12, 9, 3) if small else (39, 15, 7, 3.5)
+    # Tray and small sizes drop the ink square and let the wheel fill the frame, with fatter slices and
+    # wider gaps so the three colours stay apart.
+    if not small:
+        draw.polygon(squircle(s), fill=INK)
+    r_out, r_in, gap, corner = (50, 13, 11, 3) if small else (39, 15, 7, 3.5)
     for i, colour in enumerate(SLICES):
         pts = sector(50 * u, 50 * u, i * 120 - 60, i * 120 + 60, r_out * u, r_in * u, gap * u, corner * u)
         draw.polygon(pts, fill=colour)
