@@ -34,10 +34,16 @@ public sealed class AppSettings
     public Language? Language { get; set; } = Core.Language.Russian;
     public AppAppearance Appearance { get; set; } = AppAppearance.System;
 
+    /// <summary>Calm colours: tinted slices and tiles instead of bright ones.</summary>
+    public bool LowContrast { get; set; }
+
     /// <summary>Empty = save results next to the original file.</summary>
     public string? OutputDirectory { get; set; }
 
     public bool RevealResult { get; set; }
+
+    /// <summary>The user closed the "install helper programs" strip in Settings.</summary>
+    public bool HideMissingTools { get; set; }
     public bool Paused { get; set; }
     public bool FirstRunDone { get; set; }
     public string? LastCopyFolder { get; set; }

@@ -40,7 +40,11 @@ public static partial class FfmpegBackend
         };
     }
 
-    /// <summary>Runs ffmpeg with <c>-i input [args] output</c> and maps its time= output to progress.</summary>
+    /// <summary>
+    /// Runs ffmpeg with <c>-i input [args] output</c> and maps its time= output to progress. H.264 work goes to
+    /// the graphics card when it has an encoder (NVIDIA, Intel or AMD), several times faster; if that fails
+    /// for any reason the same job runs again on the CPU.
+    /// </summary>
     public static Task RunAsync(
         OperationContext ctx,
         IReadOnlyList<string> inputs,
@@ -51,18 +55,25 @@ public static partial class FfmpegBackend
         double? knownDuration = null)
     {
         var ffmpeg = ctx.Tools.Require(ExternalTool.Ffmpeg);
-        var all = new List<string> { "-hide_banner", "-nostdin", "-y" };
-        if (inputArgs is not null)
-            all.AddRange(inputArgs);
-        foreach (var i in inputs)
+        var encode = args.ToList();
+        List<string> Command(string? gpu)
         {
-            all.Add("-i");
-            all.Add(i);
+            var all = new List<string> { "-hide_banner", "-nostdin", "-y" };
+            if (gpu is not null)
+                all.AddRange(["-hwaccel", "auto"]);
+            if (inputArgs is not null)
+                all.AddRange(inputArgs);
+            foreach (var i in inputs)
+            {
+                all.Add("-i");
+                all.Add(i);
+            }
+            all.AddRange(gpu is null ? encode : OnGpu(encode, gpu));
+            all.Add(output);
+            return all;
         }
-        all.AddRange(args);
-        all.Add(output);
 
-        double total = knownDuration ?? 0;
+        double total = 0;
         var noAudio = false;
         return RunWithHintsAsync();
 
@@ -70,7 +81,23 @@ public static partial class FfmpegBackend
         {
             try
             {
-                await ProcessRunner.RunAsync(ffmpeg, all, ctx.CancellationToken, OnLine).ConfigureAwait(false);
+                // "Compress" asks x264 for its slow preset: smaller files than any card encoder makes, so it stays on the CPU.
+                var gpu = encode.Contains("libx264") && !encode.Contains("slow") ? await GpuEncoderAsync(ffmpeg, ctx.CancellationToken).ConfigureAwait(false) : null;
+                if (gpu is not null)
+                {
+                    try
+                    {
+                        total = knownDuration ?? 0;
+                        await ProcessRunner.RunAsync(ffmpeg, Command(gpu), ctx.CancellationToken, OnLine).ConfigureAwait(false);
+                        return;
+                    }
+                    catch (ConversionException) when (!noAudio)
+                    {
+                        // Drivers refuse some sizes and formats the CPU encoder takes.
+                    }
+                }
+                total = knownDuration ?? 0;
+                await ProcessRunner.RunAsync(ffmpeg, Command(null), ctx.CancellationToken, OnLine).ConfigureAwait(false);
             }
             catch (ConversionException) when (noAudio)
             {
@@ -88,6 +115,78 @@ public static partial class FfmpegBackend
             else if (total > 0 && TimeRegex().Match(line) is { Success: true } t)
                 progress.Report(Math.Clamp(Seconds(t) / total, 0, 0.99));
         }
+    }
+
+    private static readonly Dictionary<string, string?> GpuEncoders = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// The first hardware H.264 encoder that really works here, tried once per ffmpeg: a build lists all three
+    /// whatever the card, so each one encodes a few blank frames to prove it.
+    /// </summary>
+    private static async Task<string?> GpuEncoderAsync(string ffmpeg, CancellationToken ct)
+    {
+        lock (GpuEncoders)
+        {
+            if (GpuEncoders.TryGetValue(ffmpeg, out var known))
+                return known;
+        }
+        string? found = null;
+        foreach (var encoder in new[] { "h264_nvenc", "h264_qsv", "h264_amf" })
+        {
+            try
+            {
+                await ProcessRunner.RunAsync(ffmpeg, ["-hide_banner", "-nostdin", "-f", "lavfi", "-i", "color=black:s=320x240:d=0.2", "-frames:v", "3", "-c:v", encoder, "-f", "null", "-"], ct).ConfigureAwait(false);
+                found = encoder;
+                break;
+            }
+            catch (ConversionException)
+            {
+            }
+        }
+        lock (GpuEncoders)
+            GpuEncoders[ffmpeg] = found;
+        return found;
+    }
+
+    /// <summary>
+    /// Swaps <c>-c:v libx264 -preset … -crf N</c> for the hardware encoder at about the same quality: measured
+    /// on NVENC, quality level N + 4 matches x264's CRF N in SSIM and file size.
+    /// </summary>
+    public static List<string> OnGpu(List<string> args, string encoder)
+    {
+        var result = new List<string>();
+        for (var i = 0; i < args.Count; i++)
+        {
+            var next = i + 1 < args.Count ? args[i + 1] : "";
+            switch (args[i])
+            {
+                case "-c:v" when next == "libx264":
+                    result.AddRange(["-c:v", encoder]);
+                    i++;
+                    break;
+                case "-preset":
+                    i++; // x264 speed presets; each encoder gets its own below
+                    break;
+                case "-crf":
+                    var q = (int.Parse(next, CultureInfo.InvariantCulture) + 4).ToString(CultureInfo.InvariantCulture);
+                    result.AddRange(encoder switch
+                    {
+                        "h264_nvenc" => ["-preset", "p5", "-rc", "vbr", "-cq", q, "-b:v", "0"],
+                        "h264_qsv" => ["-preset", "medium", "-global_quality", q],
+                        _ => ["-quality", "balanced", "-rc", "cqp", "-qp_i", q, "-qp_p", q, "-qp_b", q],
+                    });
+                    i++;
+                    break;
+                case "-pix_fmt" when encoder == "h264_qsv":
+                    result.AddRange(["-pix_fmt", "nv12"]); // Quick Sync takes NV12, the same 4:2:0 layout
+                    i++;
+                    break;
+                default:
+                    result.Add(args[i]);
+                    break;
+            }
+        }
+        return result;
     }
 
     private static double Seconds(Match m) =>

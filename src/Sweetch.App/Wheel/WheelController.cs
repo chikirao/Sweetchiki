@@ -56,6 +56,28 @@ internal sealed class WheelController
             if (_wheel is { IsFinished: false, Mode: WheelMode.Drag } wheel)
                 wheel.Finish();
         };
+
+        // The first wheel loads the fonts and checks which tools are installed, which takes up to a few
+        // seconds; do it once in the background so the first real wheel opens at once.
+        Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () =>
+        {
+            UI.Theme.Refresh();
+            IReadOnlyList<FileItem> sample = [new FileItem("warm-up.jpg")];
+            foreach (var kind in new[] { WheelKind.Convert, WheelKind.Tools, WheelKind.Actions })
+                new WheelWindow(WheelMode.Drag, kind, sample, _settings, Operations, (_, _) => { }).Close();
+            PrepareSpare();
+        });
+    }
+
+    /// <summary>A drag wheel created ahead of time and kept invisible off screen (see <see cref="WheelWindow.Prepare"/>).</summary>
+    private WheelWindow? _spare;
+
+    private void PrepareSpare()
+    {
+        if (_spare is { IsFinished: false })
+            return;
+        _spare = new WheelWindow(WheelMode.Drag, WheelKind.Convert, null, _settings, Operations, _jobs.Start);
+        _spare.Prepare();
     }
 
     /// <summary>
@@ -183,19 +205,29 @@ internal sealed class WheelController
     {
         _wheel?.Finish();
         UI.Theme.Refresh();
-        var window = new WheelWindow(mode, wheel, items, _settings, Operations, _jobs.Start)
+        WheelWindow window;
+        if (mode == WheelMode.Drag && _spare is { IsFinished: false } spare)
         {
-            LastOperation = LastFor,
-            RunRepeat = targets =>
-            {
-                if (LastFor(targets) is { } last)
-                    _jobs.Start(last, targets, _settings.LastParameters);
-            },
+            // Use the window that is already up off screen; a new spare is made once this one closes.
+            _spare = null;
+            window = spare;
+            window.Reset(wheel, items);
+        }
+        else
+        {
+            window = new WheelWindow(mode, wheel, items, _settings, Operations, _jobs.Start);
+        }
+        window.LastOperation = LastFor;
+        window.RunRepeat = targets =>
+        {
+            if (LastFor(targets) is { } last)
+                _jobs.Start(last, targets, _settings.LastParameters);
         };
         window.Closed += (_, _) =>
         {
             if (ReferenceEquals(_wheel, window))
                 _wheel = null;
+            window.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, PrepareSpare);
         };
         _wheel = window;
         window.ShowAt(at);

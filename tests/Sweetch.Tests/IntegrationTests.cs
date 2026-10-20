@@ -180,7 +180,8 @@ public class IntegrationTests : IClassFixture<IntegrationTests.Samples>
                     Assert.Empty(Directory.GetFiles(outDir, "*.part.*"));
                     output.WriteLine($"ok   {op.Id} → {string.Join(", ", result.Outputs.Select(Path.GetFileName))}");
                 }
-                catch (ConversionException) when (key is "pdf" && !_s.PdfHasText && op.Id is "pdf.to.txt" or "pdf.to.md")
+                // Every text route (TXT, MD, and DOCX/HTML/EPUB once Pandoc is installed) needs a text layer.
+                catch (ConversionException ex) when (key is "pdf" && !_s.PdfHasText && ex.Message.Contains("contains no text"))
                 {
                     output.WriteLine($"ok   {op.Id} (expected: image-only PDF has no text)");
                 }
@@ -247,5 +248,24 @@ public class IntegrationTests : IClassFixture<IntegrationTests.Samples>
         Assert.Equal("archiv2", Path.GetFileName(multi));
         Assert.True(File.Exists(Path.Combine(multi, "složka", "b.txt")));
         Assert.True(File.Exists(Path.Combine(multi, "poznámky.txt")));
+    }
+
+    [Fact]
+    public async Task Image_batch_runs_side_by_side_with_distinct_names()
+    {
+        var dir = Path.Combine(_s.Dir, "batch");
+        Directory.CreateDirectory(dir);
+        var items = new[] { "png", "jpg", "bmp", "gif", "tiff", "webp" }.Select(ext =>
+        {
+            var path = Path.Combine(dir, "same." + ext);
+            File.Copy(_s.Files["png"], path);
+            return new FileItem(path);
+        }).ToList();
+        var op = (PerFileOperation)Catalog.Build().Single(o => o.Id == "image.to.avif");
+        Assert.True(op.Parallelism >= 1);
+        var result = await op.ExecuteAsync(items, _s.Context(Path.Combine(dir, "out")));
+        Assert.Null(result.Message);
+        Assert.Equal(items.Count, result.Outputs.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+        Assert.All(result.Outputs, o => Assert.True(File.Exists(o)));
     }
 }

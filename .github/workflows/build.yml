@@ -43,7 +43,7 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force artifacts | Out-Null
-          $version = if ($env:GITHUB_REF_TYPE -eq 'tag') { $env:GITHUB_REF_NAME.TrimStart('v') } else { '1.0' }
+          $version = if ($env:GITHUB_REF_TYPE -eq 'tag') { $env:GITHUB_REF_NAME.TrimStart('v') } else { '2.0' }
           Compress-Archive -Path ./publish/* -DestinationPath "./artifacts/Sweetch-$version-win-x64.zip"
           ./scripts/build-installer.ps1 -Version $version
           ./scripts/verify-installer.ps1 -Installer "./artifacts/Sweetch-$version-Setup-win-x64.exe"
@@ -68,6 +68,9 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/release-notes
       - uses: actions/download-artifact@v7
         with:
           name: Sweetch-Windows
@@ -76,5 +79,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # Written notes for the tag when there are any (.github/release-notes/v2.0.md), else GitHub's list of changes.
+          notes=".github/release-notes/$GITHUB_REF_NAME.md"
+          if [ -f "$notes" ]; then from=(--notes-file "$notes"); else from=(--generate-notes); fi
           gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
-            --title "Sweetch ${GITHUB_REF_NAME#v}" --generate-notes artifacts/*
+            --title "Sweetch ${GITHUB_REF_NAME#v}" "${from[@]}" artifacts/*

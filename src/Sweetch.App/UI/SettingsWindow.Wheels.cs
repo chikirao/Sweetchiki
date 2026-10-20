@@ -54,7 +54,7 @@ internal sealed partial class SettingsWindow
     }
 
     internal static bool Applies(Operation op, IReadOnlyList<FileItem> samples) =>
-        samples.Any(s => op.AppliesTo([s]) || op.AppliesTo([s, s with { Path = "b" + Path.GetExtension(s.Path) }]));
+        samples.Any(s => op.AppliesTo([s]) || op.AppliesTo([s, new FileItem("b" + Path.GetExtension(s.Path))]));
 
     /// <summary>Shows the wheel page for one wheel and file type (used by the self-test).</summary>
     internal void ShowWheel(WheelKind wheel, int group)
@@ -69,7 +69,7 @@ internal sealed partial class SettingsWindow
         PageHeader(root, PageName(SettingsPage.Wheels),
             T("Star your favourite slices: they always come first, in the same place. Use the switch to hide a slice.", "Отметьте избранные секторы: они всегда будут первыми, на одном месте. Переключатель скрывает сектор."));
 
-        var top = new DockPanel { Margin = new Thickness(0, 14, 0, 18), LastChildFill = false };
+        var top = new DockPanel { Margin = new Thickness(0, 14, 0, 18), LastChildFill = true };
         var wheels = Segmented(
             [.. new[] { WheelKind.Convert, WheelKind.Tools, WheelKind.Actions }.Select(w =>
                 (_settings.KeyFor(w) == Input.ModifierKey.None ? AppSettings.WheelName(w) : $"{AppSettings.WheelName(w)} · {AppSettings.KeyName(_settings.KeyFor(w))}", w))],
@@ -80,16 +80,18 @@ internal sealed partial class SettingsWindow
                 _group = 0;
                 Rebuild();
             });
-        top.Children.Add(wheels);
+        wheels.HorizontalAlignment = HorizontalAlignment.Left;
         var reset = Button(T("Reset to default", "Сбросить настройки"), () =>
         {
             _settings.HiddenOperations.Clear();
             _settings.FavoriteOperations.Clear();
             Save();
             Rebuild();
-        }, glyph: "");
+        }, glyph: Glyphs.Reset);
         DockPanel.SetDock(reset, Dock.Right);
         top.Children.Add(reset);
+        top.Children.Add(wheels);
+        RightOrUnder(top, reset, room: 560, beside: new Thickness(16, 0, 0, 0), under: new Thickness(0, 12, 0, 0));
         root.Children.Add(top);
 
         var groups = GroupedOperations()
@@ -103,11 +105,6 @@ internal sealed partial class SettingsWindow
         var visible = WheelLayout.Arrange(ops, _settings.HiddenOperations, _settings.FavoriteOperations);
 
         var grid = new Grid();
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(210) });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(24) });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), MinWidth = 300 });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(24) });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), MinWidth = 280 });
 
         // 1. file types
         var list = new StackPanel();
@@ -123,21 +120,20 @@ internal sealed partial class SettingsWindow
         // 2. the wheel as it will open
         var middle = new StackPanel();
         middle.Children.Add(ColumnLabel(T("2. How the wheel opens", "2. Способ открытия меню")));
-        var preview = WheelWindow.Preview(visible, name, $"{visible.Count} / {ops.Count}", _settings.FavoriteOperations.ToHashSet());
+        var key = _settings.KeyFor(_wheel);
+        var keyName = key == Input.ModifierKey.None ? AppSettings.WheelName(_wheel) : AppSettings.KeyName(key);
+        var preview = WheelWindow.Preview(visible, key, _wheel, keyName, name, $"{visible.Count} / {ops.Count}", _settings.FavoriteOperations.ToHashSet());
         preview.MaxWidth = 420;
         middle.Children.Add(new Border
         {
             Background = Theme.Card,
-            BorderBrush = Theme.PanelBorder,
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(14),
+            CornerRadius = new CornerRadius(CardRadius),
             Padding = new Thickness(10),
             Child = preview,
         });
         var hint = Text(T("Favourite slices are highlighted. Tap the same key again (or press R) to repeat the last action.", "Избранные секторы выделены. Нажмите ту же клавишу ещё раз (или R), чтобы повторить последнее действие."), 12, brush: Theme.Muted);
         hint.Margin = new Thickness(4, 10, 4, 0);
         middle.Children.Add(hint);
-        Grid.SetColumn(middle, 2);
         grid.Children.Add(middle);
 
         // 3. slices
@@ -149,16 +145,47 @@ internal sealed partial class SettingsWindow
         right.Children.Add(new Border
         {
             Background = Theme.Card,
-            BorderBrush = Theme.PanelBorder,
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(14),
-            Padding = new Thickness(6, 4, 6, 4),
+            CornerRadius = new CornerRadius(CardRadius),
+            Padding = new Thickness(8, 6, 8, 6),
             Child = rows,
         });
-        Grid.SetColumn(right, 4);
         grid.Children.Add(right);
+        _wheelsWide = WheelsFit;
+        Columns(grid, _wheelsWide);
 
         root.Children.Add(grid);
+    }
+
+    private bool _wheelsWide;
+
+    /// <summary>
+    /// Whether the three columns fit next to each other. Measured on the window, because the page itself takes
+    /// the width of its content.
+    /// </summary>
+    private bool WheelsFit => (_scroll.ActualWidth > 0 ? _scroll.ActualWidth : Width - 272 - 16) - 88 - 14 >= 210 + 24 + 260 + 24 + 260;
+
+    /// <summary>File types, wheel and slices side by side; stacked when the window is too narrow for three columns.</summary>
+    private static void Columns(Grid grid, bool wide)
+    {
+        grid.ColumnDefinitions.Clear();
+        grid.RowDefinitions.Clear();
+        if (wide)
+        {
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(210) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(24) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), MinWidth = 260 });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(24) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), MinWidth = 260 });
+        }
+        for (var i = 0; i < grid.Children.Count; i++)
+        {
+            var child = (FrameworkElement)grid.Children[i];
+            if (!wide)
+                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            Grid.SetColumn(child, wide ? 2 * i : 0);
+            Grid.SetRow(child, wide ? 0 : i);
+            child.Margin = new Thickness(0, wide || i == 0 ? 0 : 28, 0, 0);
+        }
     }
 
     private static TextBlock ColumnLabel(string text)
@@ -177,13 +204,13 @@ internal sealed partial class SettingsWindow
             CornerRadius = new CornerRadius(9),
             MinWidth = 26,
             Padding = new Thickness(7, 1, 7, 2),
-            Background = active ? Theme.AccentGradient : Theme.Track,
+            Background = active ? Theme.Ink : Theme.Track,
             Child = new TextBlock
             {
                 Text = count,
                 FontSize = 11.5,
                 FontWeight = FontWeights.SemiBold,
-                Foreground = active ? Theme.TextOnAccent : Theme.Muted,
+                Foreground = active ? Theme.OnInk : Theme.Muted,
                 HorizontalAlignment = HorizontalAlignment.Center,
             },
             VerticalAlignment = VerticalAlignment.Center,
@@ -195,7 +222,7 @@ internal sealed partial class SettingsWindow
             Text = glyph,
             FontFamily = Theme.Icons,
             FontSize = 15,
-            Foreground = active ? Theme.Accent : Theme.Muted,
+            Foreground = active ? Theme.Ink : Theme.Muted,
             VerticalAlignment = VerticalAlignment.Center,
             Margin = new Thickness(0, 0, 12, 0),
         };
@@ -204,7 +231,7 @@ internal sealed partial class SettingsWindow
         row.Children.Add(Text(name, 14, active ? FontWeights.SemiBold : FontWeights.Normal, wrap: false));
         var item = new Border
         {
-            Background = active ? Theme.AccentSoft : Brushes.Transparent,
+            Background = active ? Theme.Selected : Brushes.Transparent,
             CornerRadius = new CornerRadius(9),
             Padding = new Thickness(12, 9, 10, 9),
             Margin = new Thickness(0, 0, 0, 2),
@@ -231,10 +258,11 @@ internal sealed partial class SettingsWindow
 
         var star = new TextBlock
         {
-            Text = favorite ? "" : "",
+            Text = favorite ? Glyphs.Star : Glyphs.Star,
             FontFamily = Theme.Icons,
-            FontSize = 16,
-            Foreground = favorite ? Theme.Accent : Theme.Muted,
+            FontSize = 20,
+            Foreground = favorite ? Theme.Ink : Theme.Muted,
+            Opacity = favorite ? 1 : 0.35,
             Padding = new Thickness(8),
             Cursor = Cursors.Hand,
             VerticalAlignment = VerticalAlignment.Center,
@@ -272,7 +300,7 @@ internal sealed partial class SettingsWindow
         var isFormat = op.Wheel == WheelKind.Convert && op.Label.Length <= 6 && op.Label.ToUpperInvariant() == op.Label;
         var icon = new TextBlock
         {
-            Text = isFormat ? "" : op.Glyph,
+            Text = isFormat ? Glyphs.Convert : op.Glyph,
             FontFamily = Theme.Icons,
             FontSize = 16,
             Foreground = Theme.Text,

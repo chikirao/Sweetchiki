@@ -1,10 +1,10 @@
 using System.Diagnostics;
 using Sweetch.Core;
 namespace Sweetch.App.Shell;
-/// <summary>No update server is configured for Sweetch 1.0. No background traffic or installers.</summary>
+/// <summary>No update server is configured for Sweetch 2.0. No background traffic or installers.</summary>
 internal sealed class Updater
 {
-    public static Version Current => new(1, 0, 0);
+    public static Version Current => new(2, 0, 0);
     public static bool IsInstalled => false;
     public UpdateInfo? Available => null;
     public DateTime? LastChecked => null;

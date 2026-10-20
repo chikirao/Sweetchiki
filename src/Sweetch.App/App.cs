@@ -68,6 +68,7 @@ internal sealed class App : Application
         _settings = AppSettings.Load();
         Loc.Current = _settings.Language ?? Loc.Detect();
         Theme.Override = _settings.Appearance switch { AppAppearance.Dark => true, AppAppearance.Light => false, _ => null };
+        Theme.LowContrast = _settings.LowContrast;
         Theme.Refresh();
         _tools = new ToolLocator();
         var jobs = new JobRunner(_settings, _tools);
@@ -157,6 +158,7 @@ internal sealed class App : Application
     private void OnSettingsChanged()
     {
         Theme.Override = _settings.Appearance switch { AppAppearance.Dark => true, AppAppearance.Light => false, _ => null };
+        Theme.LowContrast = _settings.LowContrast;
         Theme.Refresh();
         var language = _settings.Language ?? Loc.Detect();
         var relocalized = language != Loc.Current;
