@@ -21,9 +21,14 @@ try {
     }
     $env:DOTNET_ROOT = Split-Path $dotnet
 
+    # From scratch, so files an older build left behind (such as tools/pandoc.exe) don't ship. A running copy
+    # locks part of the folder, and deleting the rest would break it: stop before touching anything.
+    if (Get-Process Sweetch -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$PSScriptRoot\publish\*" }) {
+        throw 'Sweetch запущен из папки publish: закройте его (значок в трее → Выход) и запустите сборку снова.'
+    }
+    if (Test-Path publish) { Remove-Item publish -Recurse -Force }
     & $dotnet publish src/Sweetch.App/Sweetch.App.csproj -c Release -r win-x64 --self-contained -p:Version=2.0.0 -o publish
     if ($LASTEXITCODE -ne 0) { throw 'Сборка Sweetch завершилась с ошибкой.' }
-    & ./scripts/bundle-pandoc.ps1 -Destination ./publish/tools
     Copy-Item LICENSE, THIRD-PARTY-NOTICES.md, README.md publish/
     Write-Output 'Готово: publish/Sweetch.exe'
 }

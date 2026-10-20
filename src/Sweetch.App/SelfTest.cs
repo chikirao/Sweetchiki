@@ -32,7 +32,7 @@ internal static class SelfTest
             var disabledUpdater = new Shell.Updater();
             Check(disabledUpdater.CheckAsync().GetAwaiter().GetResult() is null && disabledUpdater.LastChecked is null, "updates disabled");
             log.Add("ok Sweetch 2.0 branding, links, languages and disabled updates");
-            TestBundledPandoc(outDir, log);
+            TestPandoc(outDir, log);
             foreach (var (language, dark, low, folder) in new[]
                      {
                          (Language.English, true, false, "en"), (Language.English, false, false, "en-light"),
@@ -261,14 +261,19 @@ internal static class SelfTest
         log.Add("ok settings json");
     }
 
-    private static void TestBundledPandoc(string outDir, List<string> log)
+    /// <summary>Pandoc is downloaded on first use: fetch it the way the app does (when missing), then convert.</summary>
+    private static void TestPandoc(string outDir, List<string> log)
     {
-        var exe = Path.Combine(AppContext.BaseDirectory, "tools", "pandoc.exe");
-        Check(File.Exists(exe), "Pandoc is included in the application folder");
-        Check(!Shell.ToolInstaller.CanInstall(ExternalTool.Pandoc), "Pandoc never requires a download");
+        Check(Shell.ToolInstaller.CanInstall(ExternalTool.Pandoc), "Pandoc downloads on demand");
         var tools = new ToolLocator();
-        Check(string.Equals(tools.Pandoc, exe, StringComparison.OrdinalIgnoreCase), "bundled Pandoc takes priority over PATH");
-        var dir = Path.Combine(outDir, "bundled-pandoc");
+        var downloaded = tools.Pandoc is null;
+        if (downloaded)
+        {
+            Shell.ToolInstaller.InstallAsync(ExternalTool.Pandoc, new Progress<double>(), default).GetAwaiter().GetResult();
+            tools.Refresh();
+        }
+        Check(tools.Pandoc is not null, "Pandoc found after the download");
+        var dir = Path.Combine(outDir, "pandoc");
         Directory.CreateDirectory(dir);
         var md = Path.Combine(dir, "проверка.md");
         var docx = Path.Combine(dir, "проверка.docx");
@@ -282,7 +287,7 @@ internal static class SelfTest
         }).GetAwaiter().GetResult();
         var text = File.ReadAllText(txt);
         Check(text.Contains("Sweetch offline 12345") && text.Contains("Проверка офлайн"), "offline Markdown / DOCX / TXT round trip");
-        log.Add("ok bundled Pandoc: offline Markdown -> DOCX -> TXT, Cyrillic preserved");
+        log.Add($"ok Pandoc ({(downloaded ? "downloaded, SHA-256 checked" : "found")}): Markdown -> DOCX -> TXT, Cyrillic preserved");
     }
 
     /// <summary>Reading the Explorer selection goes through late-bound COM, which trimming could break.</summary>

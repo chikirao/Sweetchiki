@@ -65,7 +65,7 @@ internal sealed class JobsWindow : Window
     }
 }
 
-internal sealed class JobCard : Border
+internal sealed class JobCard : Grid
 {
     /// <summary>Off in the self-test, where offscreen rendering doesn't advance animations.</summary>
     public static bool Animate { get; set; } = true;
@@ -84,13 +84,22 @@ internal sealed class JobCard : Border
     {
         _cancel = cancel;
         _remove = remove;
-        Background = Theme.Panel;
-        BorderBrush = Theme.PanelBorder;
-        BorderThickness = new Thickness(1);
-        CornerRadius = new CornerRadius(14);
         Margin = new Thickness(12, 6, 12, 6);
-        Padding = new Thickness(16, 14, 12, 14);
-        Effect = Theme.Shadow(22);
+        // The shadow is its own cached layer, so progress updates redraw the card but not the blur.
+        Children.Add(new Border
+        {
+            CacheMode = new BitmapCache(),
+            Child = new Border { Background = Theme.Panel, CornerRadius = new CornerRadius(14), Effect = Theme.Shadow(22) },
+        });
+        var surface = new Border
+        {
+            Background = Theme.Panel,
+            BorderBrush = Theme.PanelBorder,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(14),
+            Padding = new Thickness(16, 14, 12, 14),
+        };
+        Children.Add(surface);
 
         var icon = new Grid { Width = 40, Height = 40, Margin = new Thickness(0, 0, 14, 0), VerticalAlignment = VerticalAlignment.Top };
         icon.Children.Add(new Border { CornerRadius = new CornerRadius(10), Background = Theme.Track });
@@ -155,7 +164,7 @@ internal sealed class JobCard : Border
         DockPanel.SetDock(icon, Dock.Left);
         row.Children.Add(icon);
         row.Children.Add(body);
-        Child = row;
+        surface.Child = row;
 
         if (!Animate)
             return;

@@ -471,7 +471,7 @@ internal sealed partial class SettingsWindow : Window
         PageHeader(root, PageName(SettingsPage.Helpers), T("Programs Sweetch uses for audio, video and documents.", "Программы для обработки аудио, видео и документов в Sweetch."));
         root.Children.Add(SectionHeader(T("Built in", "Встроено")));
         root.Children.Add(Card(T("Built in", "Встроено"),
-            T("Images, PDFs, spreadsheets, subtitles and archives. Pandoc for documents is included. Audio and video need FFmpeg; some Office conversions need LibreOffice.", "Изображения, PDF, таблицы, субтитры и архивы. Pandoc для документов уже включён. Для аудио и видео нужен FFmpeg; для части операций Office — LibreOffice."),
+            T("Images, PDFs, spreadsheets, subtitles and archives. Documents need Pandoc and audio and video need FFmpeg: both download the first time they're needed. Some Office conversions need LibreOffice.", "Изображения, PDF, таблицы, субтитры и архивы. Для документов нужен Pandoc, для аудио и видео — FFmpeg: оба скачиваются при первой необходимости. Для части операций Office — LibreOffice."),
             Button(T("Check again", "Проверить снова"), () =>
             {
                 _tools.Refresh();
@@ -552,11 +552,6 @@ internal sealed partial class SettingsWindow : Window
     private Border ToolCard(ExternalTool tool)
     {
         var path = _tools.Find(tool);
-        if (tool == ExternalTool.Pandoc)
-            return Card("Pandoc 3.12.1", path is null
-                ? T("Extract the entire Sweetch archive, including the tools folder.", "Распакуйте архив Sweetch целиком, включая папку tools.")
-                : T("Included with Sweetch. Document conversions work without downloading Pandoc.", "Включён в Sweetch. Конвертация документов работает без скачивания Pandoc."),
-                Badge(path is null ? T("missing", "отсутствует") : T("included", "в комплекте"), path is not null), glyph: Glyphs.Document);
         var description = path ?? tool switch
         {
             ExternalTool.Ffmpeg => T("Audio and video", "Аудио и видео"),

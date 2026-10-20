@@ -10,27 +10,31 @@ using static Sweetch.Core.Loc;
 namespace Sweetch.App.Shell;
 
 /// <summary>
-/// Downloads FFmpeg into %LOCALAPPDATA%\Sweetch\tools the first time a conversion needs it,
-/// so the installer stays small. Every download is checked against its published SHA-256.
+/// Downloads FFmpeg or Pandoc into %LOCALAPPDATA%\Sweetch\tools the first time a conversion needs it,
+/// so the app stays small (Pandoc alone is 225 MB unpacked). Every download is checked against a SHA-256.
 /// </summary>
 internal static class ToolInstaller
 {
-    public static readonly ExternalTool[] Installable = [ExternalTool.Ffmpeg];
+    public static readonly ExternalTool[] Installable = [ExternalTool.Ffmpeg, ExternalTool.Pandoc];
 
     private const string FfmpegUrl = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.7z";
+
+    // A fixed, tested release; its checksum is pinned here rather than fetched next to the file.
+    private const string PandocUrl = "https://github.com/jgm/pandoc/releases/download/3.12.1/pandoc-3.12.1-windows-x86_64.zip";
+    private const string PandocSha256 = "6ef431cb20b2c24a0371fc19200dc49d452be54b1b5c9239f3462841ef53e587";
     private static readonly HttpClient Http = CreateHttp();
 
     public static bool CanInstall(ExternalTool tool) => Installable.Contains(tool);
 
     /// <summary>Approximate download size for the confirmation question.</summary>
-    public static string DownloadSize(ExternalTool tool) => tool == ExternalTool.Ffmpeg ? "34 MB" : "35 MB";
+    public static string DownloadSize(ExternalTool tool) => tool == ExternalTool.Ffmpeg ? "34 MB" : "42 MB";
 
     public static async Task InstallAsync(ExternalTool tool, IProgress<double> progress, CancellationToken ct)
     {
         var (url, sha256, exeName) = tool switch
         {
             ExternalTool.Ffmpeg => (FfmpegUrl, (await Http.GetStringAsync(FfmpegUrl + ".sha256", ct)).Trim().Split(' ', '\t', '\n')[0].ToLowerInvariant(), "ffmpeg.exe"),
-            ExternalTool.Pandoc => throw new ConversionException(T("Pandoc is included with Sweetch. Please extract the entire app archive, including the tools folder.", "Pandoc включён в Sweetch. Распакуйте архив приложения целиком, включая папку tools.")),
+            ExternalTool.Pandoc => (PandocUrl, PandocSha256, "pandoc.exe"),
             _ => throw new ConversionException(T("This tool is installed separately.", "Этот инструмент устанавливается отдельно.")),
         };
 
@@ -73,7 +77,7 @@ internal static class ToolInstaller
         }
     }
 
-    /// <summary>Takes just the program out of the archive (FFmpeg's 7z also holds ffplay, ffprobe and docs).</summary>
+    /// <summary>Takes just the program out of the archive (the archives also hold other programs and docs).</summary>
     private static void ExtractExe(string archivePath, string exeName, CancellationToken ct)
     {
         var target = Path.Combine(ToolLocator.DownloadFolder, exeName);
