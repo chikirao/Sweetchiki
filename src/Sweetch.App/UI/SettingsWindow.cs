@@ -58,6 +58,11 @@ internal sealed partial class SettingsWindow : Window
         Background = Theme.Page;
         FontFamily = Theme.UiFont;
         Build();
+        _scroll.SizeChanged += (_, _) =>
+        {
+            if (_page == SettingsPage.Wheels && WheelsFit != _wheelsWide)
+                Rebuild();
+        };
         Action refresh = () => Dispatcher.BeginInvoke(Rebuild);
         if (Updater is not null)
             Updater.Changed += refresh;
@@ -214,8 +219,9 @@ internal sealed partial class SettingsWindow : Window
         var nav = new StackPanel();
         foreach (var page in Enum.GetValues<SettingsPage>())
             nav.Children.Add(NavItem(page));
-        // Scrolls when the window is too short for every page plus the support tile.
-        dock.Children.Add(new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Content = nav, Margin = new Thickness(0, 0, 0, 12) });
+        // Scrolls (by wheel) when the window is too short for every page plus the support tile; a bar here would
+        // squeeze the page names.
+        dock.Children.Add(new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Hidden, Content = nav, Margin = new Thickness(0, 0, 0, 12) });
 
         return new Border
         {
@@ -384,7 +390,7 @@ internal sealed partial class SettingsWindow : Window
         PageHeader(root, PageName(SettingsPage.Gestures), T("Which key opens which wheel, and a shortcut without the mouse.", "Клавиши открытия меню и сочетание для работы без мыши."));
 
         // One tile per wheel, in the colour of its key.
-        var tiles = new System.Windows.Controls.Primitives.UniformGrid { Columns = 3, Margin = new Thickness(-6, 18, -6, 0) };
+        var tiles = new System.Windows.Controls.Primitives.UniformGrid { Columns = 3, Margin = new Thickness(-6, 12, -6, -6) };
         foreach (var (wheel, description) in new[]
                  {
                      (WheelKind.Convert, T("Convert to another format", "Конвертация в другой формат")),
@@ -403,7 +409,7 @@ internal sealed partial class SettingsWindow : Window
             DockPanel.SetDock(icon, Dock.Right);
             footer.Children.Add(icon);
             var tile = Tile(Theme.KeyBrush(key, wheel), AppSettings.WheelName(wheel), description, footer, height: 250);
-            tile.Margin = new Thickness(6, 0, 6, 0);
+            tile.Margin = new Thickness(6);
             if (key == ModifierKey.None)
                 tile.Opacity = 0.55;
             tiles.Children.Add(tile);

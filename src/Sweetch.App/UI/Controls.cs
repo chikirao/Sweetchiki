@@ -84,6 +84,7 @@ internal static class Controls
             fe.Margin = new Thickness(20, 0, 0, 0);
             DockPanel.SetDock(fe, Dock.Right);
             row.Children.Add(fe);
+            RightOrUnder(row, fe, room: 260, beside: new Thickness(20, 0, 0, 0), under: new Thickness(0, 14, 0, 0));
         }
         row.Children.Add(left);
 
@@ -99,6 +100,24 @@ internal static class Controls
             Padding = new Thickness(22, 18, 22, 18),
             Margin = new Thickness(0, 0, 0, 8),
             Child = content,
+        };
+    }
+
+    /// <summary>
+    /// Keeps <paramref name="side"/> docked on the right while the rest of the row still gets <paramref name="room"/>
+    /// pixels; in a narrower window it moves under the rest, aligned left.
+    /// </summary>
+    public static void RightOrUnder(DockPanel row, FrameworkElement side, double room, Thickness beside, Thickness under)
+    {
+        row.SizeChanged += (_, e) =>
+        {
+            if (!e.WidthChanged)
+                return;
+            side.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            var narrow = e.NewSize.Width - side.DesiredSize.Width < room;
+            DockPanel.SetDock(side, narrow ? Dock.Bottom : Dock.Right);
+            side.Margin = narrow ? under : beside;
+            side.HorizontalAlignment = narrow ? HorizontalAlignment.Left : HorizontalAlignment.Stretch;
         };
     }
 
@@ -120,6 +139,7 @@ internal static class Controls
             DockPanel.SetDock(footer, Dock.Bottom);
             dock.Children.Add(footer);
         }
+        top.Margin = new Thickness(0, 0, 0, 16);
         DockPanel.SetDock(top, Dock.Top);
         dock.Children.Add(top);
         var tile = new Border
@@ -129,8 +149,9 @@ internal static class Controls
             Padding = new Thickness(22),
             Child = dock,
         };
+        // At least this tall; taller when the text wraps in a narrow window.
         if (height > 0)
-            tile.Height = height;
+            tile.MinHeight = height;
         return tile;
     }
 

@@ -578,10 +578,20 @@ internal sealed class WheelWindow : Window
     /// <summary>Disc, slices and the dark hub circle; shared by the live wheel and the settings preview.</summary>
     private static void Draw(Canvas canvas, IReadOnlyList<Operation> ops, Color key, Color strong, ISet<string>? highlight, List<SolidColorBrush>? fills, List<StackPanel>? labels)
     {
-        var backdrop = new Ellipse { Width = 2 * Disc, Height = 2 * Disc, Fill = Theme.Backdrop, Effect = Theme.Shadow(30) };
-        Canvas.SetLeft(backdrop, Pad);
-        Canvas.SetTop(backdrop, Pad);
-        canvas.Children.Add(backdrop);
+        // The shadow sits in a cached parent, so its blur isn't redone each time a slice lights up; the disc
+        // itself is drawn again on top, sharp at any DPI.
+        var shadow = new Border
+        {
+            CacheMode = new BitmapCache(),
+            Child = new Ellipse { Width = 2 * Disc, Height = 2 * Disc, Fill = Theme.Backdrop, Effect = Theme.Shadow(30) },
+        };
+        var backdrop = new Ellipse { Width = 2 * Disc, Height = 2 * Disc, Fill = Theme.Backdrop };
+        foreach (var layer in new UIElement[] { shadow, backdrop })
+        {
+            Canvas.SetLeft(layer, Pad);
+            Canvas.SetTop(layer, Pad);
+            canvas.Children.Add(layer);
+        }
 
         var n = ops.Count;
         var step = n == 0 ? 360 : 360.0 / n;

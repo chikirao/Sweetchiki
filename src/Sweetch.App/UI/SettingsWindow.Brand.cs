@@ -28,7 +28,7 @@ internal sealed partial class SettingsWindow
             T($"{Brand.ForkAuthor} made this redesign.", $"{Brand.ForkAuthor} — редизайн и эта версия."),
             Theme.KeyBrush(Input.ModifierKey.Ctrl, WheelKind.Tools), Brand.ForkTrc20, Brand.ForkDonatePay), 1, 1);
 
-        var telegram = Button(T("Telegram channel", "Telegram-канал"), () => Shell.Updater.Open(Brand.Channel), primary: true, glyph: Glyphs.Send, onTile: true);
+        var telegram = Button("Telegram", () => Shell.Updater.Open(Brand.Channel), primary: true, glyph: Glyphs.Send, onTile: true);
         Place(grid, Tile(Theme.Mint, T("Ideas and questions", "Идеи и вопросы"),
             T("News and feedback on the project's Telegram channel.", "Новости и обратная связь в Telegram-канале проекта."), telegram, height: 200), 2, 0);
         Place(grid, Tile(Theme.Sky, T("Updates", "Обновления"),
@@ -79,17 +79,18 @@ internal sealed partial class SettingsWindow
         top.Children.Add(heading);
         grid.Children.Add(top);
 
-        var bottom = new DockPanel { LastChildFill = false };
-        var name = Heading("Sweetch", 104, Theme.OnKey);
-        name.TextWrapping = TextWrapping.NoWrap;
-        Typo.TrimToCaps(name);
-        DockPanel.SetDock(name, Dock.Left);
-        bottom.Children.Add(name);
+        var bottom = new DockPanel { LastChildFill = true };
         var version = Heading(Shell.Updater.Current.ToString(2), 30, Theme.OnKey);
         Typo.TrimToCaps(version);
         version.VerticalAlignment = VerticalAlignment.Bottom;
+        version.Margin = new Thickness(12, 0, 0, 0);
         DockPanel.SetDock(version, Dock.Right);
         bottom.Children.Add(version);
+        var name = Heading("Sweetch", 104, Theme.OnKey);
+        name.TextWrapping = TextWrapping.NoWrap;
+        Typo.TrimToCaps(name);
+        // The wordmark shrinks in a narrow window instead of being cut off.
+        bottom.Children.Add(new Viewbox { Child = name, StretchDirection = StretchDirection.DownOnly, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Bottom });
         Grid.SetRow(bottom, 2);
         grid.Children.Add(bottom);
 

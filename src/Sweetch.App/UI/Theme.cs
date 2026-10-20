@@ -177,7 +177,65 @@ internal static class Theme
     {
         IsDark = dark;
         _palette = dark ? DarkPalette : LightPalette;
+        if (Application.Current is { } app)
+        {
+            app.Resources[typeof(System.Windows.Controls.Primitives.ScrollBar)] ??= ScrollBarStyle.Value;
+            app.Resources["Sweetch.Thumb"] = Solid(Color.FromArgb(0x70, _palette.Muted.R, _palette.Muted.G, _palette.Muted.B));
+            app.Resources["Sweetch.ThumbHover"] = Solid(_palette.Muted);
+        }
     }
+
+    /// <summary>
+    /// Every vertical scroll bar in the app: a slim rounded thumb that widens under the mouse, no arrows or track.
+    /// Clicking above or below the thumb still pages.
+    /// </summary>
+    private static readonly Lazy<Style> ScrollBarStyle = new(() => (Style)System.Windows.Markup.XamlReader.Parse("""
+        <Style xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" TargetType="ScrollBar">
+          <Style.Triggers>
+            <Trigger Property="Orientation" Value="Vertical">
+              <Setter Property="Width" Value="14" />
+              <Setter Property="MinWidth" Value="14" />
+              <Setter Property="Template">
+                <Setter.Value>
+                  <ControlTemplate TargetType="ScrollBar">
+                    <Track x:Name="PART_Track" IsDirectionReversed="True">
+                      <Track.DecreaseRepeatButton>
+                        <RepeatButton Command="ScrollBar.PageUpCommand" Focusable="False" Template="{x:Null}" Background="Transparent" />
+                      </Track.DecreaseRepeatButton>
+                      <Track.IncreaseRepeatButton>
+                        <RepeatButton Command="ScrollBar.PageDownCommand" Focusable="False" Template="{x:Null}" Background="Transparent" />
+                      </Track.IncreaseRepeatButton>
+                      <Track.Thumb>
+                        <Thumb>
+                          <Thumb.Template>
+                            <ControlTemplate TargetType="Thumb">
+                              <Grid Background="Transparent">
+                                <Border x:Name="Bar" Width="6" MinHeight="36" Margin="0,6" CornerRadius="3" HorizontalAlignment="Center" Background="{DynamicResource Sweetch.Thumb}" />
+                              </Grid>
+                              <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                  <Setter TargetName="Bar" Property="Width" Value="8" />
+                                  <Setter TargetName="Bar" Property="CornerRadius" Value="4" />
+                                  <Setter TargetName="Bar" Property="Background" Value="{DynamicResource Sweetch.ThumbHover}" />
+                                </Trigger>
+                                <Trigger Property="IsDragging" Value="True">
+                                  <Setter TargetName="Bar" Property="Width" Value="8" />
+                                  <Setter TargetName="Bar" Property="CornerRadius" Value="4" />
+                                  <Setter TargetName="Bar" Property="Background" Value="{DynamicResource Sweetch.ThumbHover}" />
+                                </Trigger>
+                              </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                          </Thumb.Template>
+                        </Thumb>
+                      </Track.Thumb>
+                    </Track>
+                  </ControlTemplate>
+                </Setter.Value>
+              </Setter>
+            </Trigger>
+          </Style.Triggers>
+        </Style>
+        """));
 
     private static bool ReadSystemDark()
     {

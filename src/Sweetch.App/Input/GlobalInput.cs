@@ -113,12 +113,14 @@ internal sealed class GlobalInput : IDisposable
         {
             try
             {
-                var data = Marshal.PtrToStructure<Win32.KBDLLHOOKSTRUCT>(lParam);
+                // KBDLLHOOKSTRUCT: vkCode at 0, flags at 8. Read in place: this runs for every key in the system.
+                var vk = (uint)Marshal.ReadInt32(lParam);
+                var flags = (uint)Marshal.ReadInt32(lParam, 8);
                 var message = (int)wParam;
-                var injected = (data.flags & Win32.LLKHF_INJECTED) != 0;
+                var injected = (flags & Win32.LLKHF_INJECTED) != 0;
                 // Ignore synthetic keys (ours and other tools'); a tap must come from the keyboard.
                 if (!injected)
-                    OnKey(data.vkCode, message is Win32.WM_KEYDOWN or Win32.WM_SYSKEYDOWN);
+                    OnKey(vk, message is Win32.WM_KEYDOWN or Win32.WM_SYSKEYDOWN);
             }
             catch
             {
@@ -170,24 +172,25 @@ internal sealed class GlobalInput : IDisposable
         {
             try
             {
-                var data = Marshal.PtrToStructure<Win32.MSLLHOOKSTRUCT>(lParam);
-                Volatile.Write(ref _cursorX, data.pt.X);
-                Volatile.Write(ref _cursorY, data.pt.Y);
+                // MSLLHOOKSTRUCT starts with the point. Read in place: this runs for every mouse move in the system.
+                var pt = new Win32.POINT { X = Marshal.ReadInt32(lParam), Y = Marshal.ReadInt32(lParam, 4) };
+                Volatile.Write(ref _cursorX, pt.X);
+                Volatile.Write(ref _cursorY, pt.Y);
                 switch ((int)wParam)
                 {
                     case Win32.WM_LBUTTONDOWN:
                         _leftDown = true;
                         _dragging = false;
-                        _downAt = data.pt;
-                        Raise(data.pt);
+                        _downAt = pt;
+                        Raise(pt);
                         break;
                     case Win32.WM_RBUTTONDOWN:
                     case Win32.WM_MBUTTONDOWN:
-                        Raise(data.pt);
+                        Raise(pt);
                         break;
                     case Win32.WM_MOUSEMOVE when _leftDown && !_dragging:
-                        var dx = Math.Abs(data.pt.X - _downAt.X);
-                        var dy = Math.Abs(data.pt.Y - _downAt.Y);
+                        var dx = Math.Abs(pt.X - _downAt.X);
+                        var dy = Math.Abs(pt.Y - _downAt.Y);
                         if (dx > Win32.GetSystemMetrics(Win32.SM_CXDRAG) * 2 || dy > Win32.GetSystemMetrics(Win32.SM_CYDRAG) * 2)
                             _dragging = true;
                         break;

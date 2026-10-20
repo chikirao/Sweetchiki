@@ -47,6 +47,7 @@ internal static class SelfTest
                 RenderAll(Path.Combine(outDir, folder), language == Language.English, log);
             }
 
+            TestSpeed(log);
             log.AddRange(SmokeTest.Run(Path.Combine(outDir, "smoke")));
             // Saved after every step, so a hard crash (which skips the catch below) still shows where it stopped.
             foreach (var step in new Action[] { () => TestSettingsRoundTrip(log), () => TestExplorerCom(outDir, log), () => TestDrops(log), () => TestWatchFolder(outDir, log), () => TestOcr(outDir, log), () => log.Add("ok updates disabled: no network request") })
@@ -118,6 +119,20 @@ internal static class SelfTest
             var file = page == SettingsPage.General ? "settings" : "settings-" + page.ToString().ToLowerInvariant();
             SaveWindow(settingsWindow, Path.Combine(outDir, file + ".png"), page == SettingsPage.Wheels ? 1240 : 1000);
             settingsWindow.Close();
+            // The smallest window the user can make.
+            var narrow = new SettingsWindow(settings, tools, () => { });
+            narrow.Width = narrow.MinWidth;
+            narrow.Page = page;
+            narrow.ExpandForPreview();
+            SaveWindow(narrow, Path.Combine(outDir, "narrow-" + file + ".png"), narrow.MinWidth);
+            narrow.Close();
+            if (page == SettingsPage.General)
+            {
+                // As the window opens, with the slim scroll bar.
+                var scrolled = new SettingsWindow(settings, tools, () => { });
+                SaveWindow(scrolled, Path.Combine(outDir, "narrow-scroll.png"), scrolled.MinWidth, height: scrolled.MinHeight);
+                scrolled.Close();
+            }
             log.Add($"ok {Path.GetFileName(outDir)}/{file}");
         }
         var presetDialog = new PresetDialog(web);
@@ -171,6 +186,69 @@ internal static class SelfTest
     }
 
     /// <summary>The settings file is written with source-generated JSON (no reflection in the trimmed build).</summary>
+    /// <summary>How long the wheel and Settings take to open (logged only: CI machines vary too much for a limit).</summary>
+    private static void TestSpeed(List<string> log)
+    {
+        var settings = new AppSettings();
+        var tools = new ToolLocator();
+        var core = WheelController.BuildOperations();
+        IReadOnlyList<Operation> Source(WheelKind wheel, IReadOnlyList<FileItem> items) => Catalog.For(core, wheel, items, tools);
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        double Median(Func<double> measure) => Enumerable.Range(0, 7).Select(_ => measure()).Order().ElementAt(3);
+        double Time(Action action)
+        {
+            clock.Restart();
+            action();
+            return clock.Elapsed.TotalMilliseconds;
+        }
+
+        IReadOnlyList<FileItem> photo = [new(@"C:\Photos\vacation.jpg")];
+        var open = Median(() =>
+        {
+            var spare = new WheelWindow(WheelMode.Drag, WheelKind.Convert, null, settings, Source, (_, _) => { });
+            spare.Prepare();
+            var ms = Time(() =>
+            {
+                spare.Reset(WheelKind.Convert, photo);
+                spare.ShowAt(new Native.Win32.POINT { X = -20000, Y = -20000 });
+                spare.UpdateLayout();
+            });
+            spare.Finish();
+            return ms;
+        });
+        var wheel = new WheelWindow(WheelMode.Drag, WheelKind.Tools, photo, settings, Source, (_, _) => { });
+        wheel.Prepare();
+        var switching = Median(() => Time(() =>
+        {
+            wheel.SwitchTo(wheel.CurrentWheel == WheelKind.Tools ? WheelKind.Convert : WheelKind.Tools);
+            wheel.UpdateLayout();
+        }));
+        wheel.Finish();
+        SettingsWindow.Operations = () => core;
+        var settingsOpen = Median(() =>
+        {
+            SettingsWindow? window = null;
+            var ms = Time(() =>
+            {
+                window = new SettingsWindow(settings, tools, () => { }) { Left = -20000, Top = -20000, ShowActivated = false };
+                window.Show();
+                window.UpdateLayout();
+            });
+            window!.Close();
+            return ms;
+        });
+        var pages = new SettingsWindow(settings, tools, () => { }) { Left = -20000, Top = -20000, ShowActivated = false };
+        pages.Show();
+        var pageTimes = Enum.GetValues<SettingsPage>().Select(page => $"{page} {Median(() => Time(() =>
+        {
+            pages.Page = SettingsPage.General;
+            pages.Page = page;
+            pages.UpdateLayout();
+        })):0}").ToList();
+        pages.Close();
+        log.Add($"ok speed: wheel opens in {open:0.0} ms, switches in {switching:0.0} ms, settings open in {settingsOpen:0} ms; pages (ms): {string.Join(", ", pageTimes)}");
+    }
+
     private static void TestSettingsRoundTrip(List<string> log)
     {
         var settings = new AppSettings { Hotkey = HotkeyPreset.CtrlAltW, FavoriteOperations = ["image.to.webp"], Language = Language.Russian, Appearance = AppAppearance.Light };
@@ -357,13 +435,14 @@ internal static class SelfTest
             throw new InvalidOperationException("Self-test check failed: " + what);
     }
 
-    private static void SaveWindow(Window window, string file, double width, bool desktop = false)
+    private static void SaveWindow(Window window, string file, double width, bool desktop = false, double height = double.NaN)
     {
         var content = (UIElement)window.Content;
         window.Content = null;
         var root = new Border
         {
             Width = width,
+            Height = height,
             Background = desktop ? Desktop() : window.Background ?? Brushes.White,
             Child = content,
         };

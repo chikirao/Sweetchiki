@@ -6,7 +6,8 @@ namespace Sweetch.Core;
 /// <summary>Finds ffmpeg, pandoc and LibreOffice next to the app, in PATH or in their default install folders.</summary>
 public sealed class ToolLocator
 {
-    private readonly Dictionary<ExternalTool, string?> _cache = new();
+    // Shared with the views made by Assuming, so "what if" checks don't search PATH again.
+    private readonly Dictionary<ExternalTool, string?> _cache;
     private readonly string _appDir;
     private readonly HashSet<ExternalTool> _assumed = [];
 
@@ -16,14 +17,19 @@ public sealed class ToolLocator
     /// <summary>A view that pretends <paramref name="tools"/> are installed: "would this work after downloading X?"</summary>
     public ToolLocator Assuming(IEnumerable<ExternalTool> tools)
     {
-        var view = new ToolLocator(_appDir);
+        var view = new ToolLocator(_appDir, _cache);
         view._assumed.UnionWith(tools);
         return view;
     }
 
-    public ToolLocator(string? appDir = null)
+    public ToolLocator(string? appDir = null) : this(appDir ?? AppContext.BaseDirectory, new Dictionary<ExternalTool, string?>())
     {
-        _appDir = appDir ?? AppContext.BaseDirectory;
+    }
+
+    private ToolLocator(string appDir, Dictionary<ExternalTool, string?> cache)
+    {
+        _appDir = appDir;
+        _cache = cache;
     }
 
     private static bool IsWindows => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);

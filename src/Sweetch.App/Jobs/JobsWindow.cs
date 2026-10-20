@@ -180,12 +180,16 @@ internal sealed class JobCard : Border
         }
         // Indeterminate state: a short segment breathing until real progress arrives.
         _fill.Width = 48;
-        _fill.BeginAnimation(OpacityProperty, new DoubleAnimation(0.35, 1, TimeSpan.FromMilliseconds(700)) { AutoReverse = true, RepeatBehavior = RepeatBehavior.Forever });
+        // A slow breath needs few frames; 60 per second would redraw the window (and its shadow) all job long.
+        var pulse = new DoubleAnimation(0.35, 1, TimeSpan.FromMilliseconds(700)) { AutoReverse = true, RepeatBehavior = RepeatBehavior.Forever };
+        Timeline.SetDesiredFrameRate(pulse, 12);
+        _fill.BeginAnimation(OpacityProperty, pulse);
     }
 
     public void Report(double value)
     {
-        if (_done || value <= 0)
+        // Downloads report every few kilobytes; a redraw per half percent is plenty.
+        if (_done || value <= 0 || Math.Abs(value - _value) < 0.005)
             return;
         if (_value <= 0)
         {
