@@ -4,7 +4,6 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
-using System.Windows.Media.Animation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using Sweetch.App.Native;
@@ -46,8 +45,6 @@ internal sealed class WheelWindow : Window
     private const double Pad = 18;
     private const double Size = 2 * (Disc + Pad);
     private static readonly WheelKind[] WheelOrder = [WheelKind.Convert, WheelKind.Tools, WheelKind.Actions];
-    private static readonly Duration Swap = TimeSpan.FromMilliseconds(70);
-    private static readonly IEasingFunction Ease = new CubicEase { EasingMode = EasingMode.EaseOut };
 
     private readonly AppSettings _settings;
     private readonly OperationSource _source;
@@ -55,7 +52,6 @@ internal sealed class WheelWindow : Window
     private readonly Canvas _canvas = new() { Width = Size, Height = Size };
     private readonly List<SolidColorBrush> _fills = [];
     private readonly List<StackPanel> _labels = [];
-    private readonly ScaleTransform _scale = new(0.96, 0.96);
     private Hub _hub = null!;
 
     private IReadOnlyList<FileItem> _items;
@@ -99,8 +95,6 @@ internal sealed class WheelWindow : Window
         FontFamily = Theme.UiFont;
         Focusable = true;
         Content = _canvas;
-        _canvas.RenderTransformOrigin = new Point(0.5, 0.5);
-        _canvas.RenderTransform = _scale;
 
         SourceInitialized += (_, _) =>
         {
@@ -139,10 +133,26 @@ internal sealed class WheelWindow : Window
     public WheelKind CurrentWheel => _wheel;
 
     /// <summary>The last operation if it fits these items (for the "repeat last" view).</summary>
-    public Func<IReadOnlyList<FileItem>, Operation?>? LastOperation { get; init; }
+    public Func<IReadOnlyList<FileItem>, Operation?>? LastOperation { get; set; }
 
     /// <summary>Runs the last operation again with the values it used last time.</summary>
-    public Action<IReadOnlyList<FileItem>>? RunRepeat { get; init; }
+    public Action<IReadOnlyList<FileItem>>? RunRepeat { get; set; }
+
+    /// <summary>
+    /// Creates the window off screen and invisible, so a later <see cref="ShowAt"/> skips the costly first
+    /// show (window handle, layered surface, first layout). The controller keeps one such spare ready.
+    /// </summary>
+    public void Prepare() => Show();
+
+    /// <summary>Points a prepared spare at the wheel and items it is opened for.</summary>
+    public void Reset(WheelKind wheel, IReadOnlyList<FileItem>? items)
+    {
+        _wheel = wheel;
+        _items = items ?? [];
+        _repeat = false;
+        LoadOperations();
+        Build();
+    }
 
     public bool IsFinished => _finished;
 
@@ -155,10 +165,11 @@ internal sealed class WheelWindow : Window
     public void ShowAt(Win32.POINT screenPoint)
     {
         _anchor = screenPoint;
-        Show();
+        if (!IsVisible)
+            Show();
         PositionAtAnchor();
-        BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(120)) { EasingFunction = Ease });
-        Pop();
+        // Appears at once: no fade or zoom, so the wheel is usable the moment the key is pressed.
+        Opacity = 1;
 
         if (Mode == WheelMode.Click)
         {
@@ -201,7 +212,6 @@ internal sealed class WheelWindow : Window
         _repeat = false;
         LoadOperations();
         Build();
-        Pop();
         if (Mode == WheelMode.Click && _ops.Count > 0)
             SetHighlight(0);
     }
@@ -219,7 +229,6 @@ internal sealed class WheelWindow : Window
         _repeat = true;
         LoadOperations();
         Build();
-        Pop();
         if (Mode == WheelMode.Click && _ops.Count > 0)
             SetHighlight(0);
     }
@@ -229,7 +238,7 @@ internal sealed class WheelWindow : Window
     {
         if (Mode != WheelMode.Drag || _finished)
             return;
-        _closeTimer ??= new DispatcherTimer(TimeSpan.FromMilliseconds(500), DispatcherPriority.Normal, (_, _) => Finish(), Dispatcher);
+        _closeTimer ??= new DispatcherTimer(TimeSpan.FromMilliseconds(250), DispatcherPriority.Normal, (_, _) => Finish(), Dispatcher);
         _closeTimer.Start();
     }
 
@@ -245,10 +254,6 @@ internal sealed class WheelWindow : Window
     /// <summary>Renders the wheel to a PNG without showing it (used by --self-test).</summary>
     public void RenderPreview(string file, int highlight)
     {
-        // Offscreen rendering doesn't advance animations; show the final state.
-        _scale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
-        _scale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
-        _canvas.RenderTransform = Transform.Identity;
         if (highlight >= 0 && highlight < _ops.Count)
             SetHighlight(highlight);
         Content = null;
@@ -286,7 +291,6 @@ internal sealed class WheelWindow : Window
             _items = preview.Items;
             LoadOperations();
             Build();
-            Pop();
         }
         _closeTimer?.Stop();
         var index = HitTest(e.GetPosition(_canvas), out _);
@@ -559,14 +563,6 @@ internal sealed class WheelWindow : Window
 
     // ------------------------------------------------------------------ visuals
 
-    /// <summary>The whole wheel settles from 96 % to full size. Slices don't animate on their own.</summary>
-    private void Pop()
-    {
-        var duration = TimeSpan.FromMilliseconds(150);
-        _scale.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(0.96, 1, duration) { EasingFunction = Ease });
-        _scale.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(0.96, 1, duration) { EasingFunction = Ease });
-    }
-
     private void Build()
     {
         _canvas.Children.Clear();
@@ -742,22 +738,11 @@ internal sealed class WheelWindow : Window
         UpdateHub();
     }
 
-    /// <summary>Swaps the slice to ink/paper and back: colour only, no movement or glow.</summary>
+    /// <summary>Swaps the slice to ink/paper and back, instantly: colour only, no movement, glow or fade.</summary>
     private void Paint(int index, bool on)
     {
-        var fill = on ? Theme.SliceOn(KeyStrong) : KeyColor;
-        var text = on ? Theme.SliceOnText(KeyStrong) : Theme.OnKey.Color;
-        var foreground = (SolidColorBrush)TextElement.GetForeground(_labels[index]);
-        if (IsVisible)
-        {
-            _fills[index].BeginAnimation(SolidColorBrush.ColorProperty, new ColorAnimation(fill, Swap));
-            foreground.BeginAnimation(SolidColorBrush.ColorProperty, new ColorAnimation(text, Swap));
-        }
-        else
-        {
-            _fills[index].Color = fill;
-            foreground.Color = text;
-        }
+        _fills[index].Color = on ? Theme.SliceOn(KeyStrong) : KeyColor;
+        ((SolidColorBrush)TextElement.GetForeground(_labels[index])).Color = on ? Theme.SliceOnText(KeyStrong) : Theme.OnKey.Color;
     }
 
     private void UpdateHub()
