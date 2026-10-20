@@ -43,7 +43,7 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force artifacts | Out-Null
-          $version = if ($env:GITHUB_REF_TYPE -eq 'tag') { $env:GITHUB_REF_NAME.TrimStart('v') } else { '1.0' }
+          $version = if ($env:GITHUB_REF_TYPE -eq 'tag') { $env:GITHUB_REF_NAME.TrimStart('v') } else { '2.0' }
           Compress-Archive -Path ./publish/* -DestinationPath "./artifacts/Sweetch-$version-win-x64.zip"
           ./scripts/build-installer.ps1 -Version $version
           ./scripts/verify-installer.ps1 -Installer "./artifacts/Sweetch-$version-Setup-win-x64.exe"

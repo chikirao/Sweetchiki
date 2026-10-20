@@ -34,6 +34,9 @@ public sealed class AppSettings
     public Language? Language { get; set; } = Core.Language.Russian;
     public AppAppearance Appearance { get; set; } = AppAppearance.System;
 
+    /// <summary>Calm colours: tinted slices and tiles instead of bright ones.</summary>
+    public bool LowContrast { get; set; }
+
     /// <summary>Empty = save results next to the original file.</summary>
     public string? OutputDirectory { get; set; }
 

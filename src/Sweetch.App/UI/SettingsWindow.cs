@@ -114,12 +114,12 @@ internal sealed partial class SettingsWindow : Window
     private void Build()
     {
         var grid = new Grid();
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(248) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(272) });
         grid.ColumnDefinitions.Add(new ColumnDefinition());
         var sidebar = Sidebar();
         grid.Children.Add(sidebar);
 
-        var page = new StackPanel { Margin = new Thickness(40, 34, 40, 40), MaxWidth = _page == SettingsPage.Wheels ? 1100 : 760, HorizontalAlignment = HorizontalAlignment.Left };
+        var page = new StackPanel { Margin = new Thickness(44, 40, 44, 44), MaxWidth = _page == SettingsPage.Wheels ? 1100 : 820, HorizontalAlignment = HorizontalAlignment.Left };
         switch (_page)
         {
             case SettingsPage.General:
@@ -169,46 +169,45 @@ internal sealed partial class SettingsWindow : Window
 
     private static string PageGlyph(SettingsPage page) => page switch
     {
-        SettingsPage.General => "",
-        SettingsPage.Gestures => "",
-        SettingsPage.Wheels => "",
-        SettingsPage.Presets => "",
-        SettingsPage.WatchFolders => "",
-        SettingsPage.Quality => "",
-        SettingsPage.Helpers => "",
-        _ => "",
+        SettingsPage.General => Glyphs.Settings,
+        SettingsPage.Gestures => Glyphs.Keyboard,
+        SettingsPage.Wheels => Glyphs.Wheel,
+        SettingsPage.Presets => Glyphs.Bookmarks,
+        SettingsPage.WatchFolders => Glyphs.FolderOpen,
+        SettingsPage.Quality => Glyphs.Quality,
+        SettingsPage.Helpers => Glyphs.Extension,
+        _ => Glyphs.Info,
     };
 
     // ------------------------------------------------------------------ sidebar
 
+    internal static Image Logo(double size) => new()
+    {
+        Source = new BitmapImage(new Uri("pack://application:,,,/Assets/Sweetch.png")),
+        Width = size,
+        Height = size,
+    };
+
     private Border Sidebar()
     {
-        var dock = new DockPanel { Margin = new Thickness(18, 24, 18, 20) };
+        var dock = new DockPanel { Margin = new Thickness(14, 22, 14, 18) };
 
-        var brand = new DockPanel { Margin = new Thickness(8, 0, 0, 26) };
-        var logo = new Image
-        {
-            Source = new BitmapImage(new Uri("pack://application:,,,/Assets/Sweetch.png")),
-            Width = 40,
-            Height = 40,
-            Margin = new Thickness(0, 0, 12, 0),
-        };
+        var brand = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(8, 0, 0, 22) };
+        var logo = Logo(42);
+        logo.Margin = new Thickness(0, 0, 12, 0);
         brand.Children.Add(logo);
-        var names = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-        var name = Text("Sweetch", 19, FontWeights.SemiBold);
-        name.FontFamily = Theme.DisplayFont;
-        names.Children.Add(name);
-        names.Children.Add(Text(T("A new shape for your files.", "Новая форма ваших файлов."), 12, brush: Theme.Muted));
-        brand.Children.Add(names);
+        var name = Heading("Sweetch", 22);
+        name.VerticalAlignment = VerticalAlignment.Center;
+        Typo.TrimToCaps(name);
+        brand.Children.Add(name);
         DockPanel.SetDock(brand, Dock.Top);
         dock.Children.Add(brand);
 
-        var version = Text(T("Version ", "Версия ") + Shell.Updater.Current, 12, brush: Theme.Muted);
-        version.Margin = new Thickness(10, 12, 0, 0);
+        var version = Text(T("Version ", "Версия ") + Shell.Updater.Current, 12.5, FontWeights.Medium, Theme.Muted);
+        version.Margin = new Thickness(8, 12, 0, 0);
         DockPanel.SetDock(version, Dock.Bottom);
         dock.Children.Add(version);
-        var support = Button(T("Support the project", "Поддержать проект"), () => Page = SettingsPage.About, primary: true, glyph: "");
-        support.Margin = new Thickness(6, 10, 6, 8);
+        var support = SupportTile();
         DockPanel.SetDock(support, Dock.Bottom);
         dock.Children.Add(support);
 
@@ -226,26 +225,51 @@ internal sealed partial class SettingsWindow : Window
         };
     }
 
+    /// <summary>The pink "Support the project" block at the bottom of the sidebar.</summary>
+    private Border SupportTile()
+    {
+        var content = new StackPanel();
+        content.Children.Add(Icon(Glyphs.Heart, 28, Theme.OnKey));
+        var label = Heading(T("Support the project", "Поддержать проект"), 16, Theme.OnKey);
+        label.Margin = new Thickness(0, 18, 0, 0);
+        content.Children.Add(label);
+        var tile = new Border
+        {
+            Background = Theme.Pink,
+            CornerRadius = new CornerRadius(CardRadius),
+            Padding = new Thickness(16),
+            Cursor = Cursors.Hand,
+            Child = content,
+        };
+        tile.MouseEnter += (_, _) => tile.Opacity = 0.9;
+        tile.MouseLeave += (_, _) => tile.Opacity = 1;
+        tile.MouseLeftButtonUp += (_, _) => Page = SettingsPage.About;
+        return tile;
+    }
+
     private Border NavItem(SettingsPage page)
     {
         var active = page == _page;
-        var row = new StackPanel { Orientation = Orientation.Horizontal };
-        row.Children.Add(new TextBlock
-        {
-            Text = PageGlyph(page),
-            FontFamily = Theme.Icons,
-            FontSize = 16,
-            Foreground = active ? Theme.Accent : Theme.Text,
-            VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(0, 0, 14, 0),
-        });
-        row.Children.Add(Text(PageName(page), 14, active ? FontWeights.SemiBold : FontWeights.Normal, wrap: false));
+        var foreground = active ? Theme.OnInk : Theme.Text;
+        var row = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+        // Both trimmed to what is drawn (the icon's square, the text's capitals), so they centre on the same line.
+        var icon = Icon(PageGlyph(page), 22, foreground);
+        icon.Width = 24;
+        icon.Margin = new Thickness(0, 0, 13, 0);
+        Typo.TrimToEm(icon);
+        row.Children.Add(icon);
+        var label = Text(PageName(page), 15, FontWeights.SemiBold, foreground, wrap: false);
+        label.FontFamily = Theme.UiFont;
+        label.VerticalAlignment = VerticalAlignment.Center;
+        Typo.TrimToCaps(label);
+        row.Children.Add(label);
         var item = new Border
         {
-            Background = active ? Theme.AccentSoft : System.Windows.Media.Brushes.Transparent,
-            CornerRadius = new CornerRadius(9),
-            Padding = new Thickness(14, 10, 14, 10),
-            Margin = new Thickness(0, 0, 0, 3),
+            Background = active ? Theme.Ink : System.Windows.Media.Brushes.Transparent,
+            CornerRadius = new CornerRadius(14),
+            Height = 48,
+            Padding = new Thickness(14, 0, 14, 0),
+            Margin = new Thickness(0, 0, 0, 4),
             Cursor = Cursors.Hand,
             Child = row,
         };
@@ -260,11 +284,9 @@ internal sealed partial class SettingsWindow : Window
 
     private static void PageHeader(Panel page, string title, string subtitle)
     {
-        var t = Text(title, 28, FontWeights.SemiBold);
-        t.FontFamily = Theme.DisplayFont;
-        page.Children.Add(t);
-        var s = Text(subtitle, 13.5, brush: Theme.Muted);
-        s.Margin = new Thickness(0, 4, 0, 6);
+        page.Children.Add(Heading(title, 42));
+        var s = Text(subtitle, 15.5, FontWeights.Medium, Theme.Muted);
+        s.Margin = new Thickness(0, 10, 0, 6);
         page.Children.Add(s);
     }
 
@@ -287,7 +309,7 @@ internal sealed partial class SettingsWindow : Window
                     Title = T("Sweetch – settings", "Sweetch — настройки");
                     Rebuild();
                 }),
-            glyph: ""));
+            glyph: Glyphs.Language));
 
         root.Children.Add(SectionHeader(T("Appearance", "Оформление")));
         root.Children.Add(Card(T("Color theme", "Цветовая тема"), null,
@@ -301,7 +323,18 @@ internal sealed partial class SettingsWindow : Window
                     Theme.Refresh();
                     Background = Theme.Page;
                     Rebuild();
-                }), glyph: ""));
+                }), glyph: Glyphs.Palette));
+        root.Children.Add(Card(T("Colour scheme", "Цветовая схема"),
+            T("Low contrast swaps the bright colours for quiet tints.", "Низкий контраст заменяет яркие цвета спокойными оттенками."),
+            Segmented(
+                [(T("Bright", "Яркая"), false), (T("Low contrast", "Низкий контраст"), true)],
+                _settings.LowContrast, value =>
+                {
+                    _settings.LowContrast = value;
+                    Save();
+                    Theme.LowContrast = value;
+                    Rebuild();
+                }), glyph: Glyphs.Contrast));
 
         root.Children.Add(SectionHeader(T("Results", "Результаты")));
         var folderLine = Text(_settings.OutputDirectory ?? "", 12, brush: Theme.Muted, wrap: false);
@@ -336,24 +369,21 @@ internal sealed partial class SettingsWindow : Window
             {
                 _settings.RevealResult = v;
                 Save();
-            }), glyph: ""));
+            }), glyph: Glyphs.FolderOpen));
 
         root.Children.Add(SectionHeader(T("System", "Система")));
         root.Children.Add(Card(T("Start when I sign in", "Запускать при входе в систему"), null,
-            Toggle(ShellIntegration.IsAutostartEnabled, v => Apply(() => ShellIntegration.SetAutostart(v))), glyph: ""));
+            Toggle(ShellIntegration.IsAutostartEnabled, v => Apply(() => ShellIntegration.SetAutostart(v))), glyph: Glyphs.Power));
         root.Children.Add(Card(T("File Explorer context menu", "Контекстное меню Проводника"), T("A “Sweetch…” item on right-click", "Пункт «Sweetch…» при нажатии правой кнопкой"),
-            Toggle(ShellIntegration.IsContextMenuEnabled, v => Apply(() => ShellIntegration.SetContextMenu(v))), glyph: ""));
+            Toggle(ShellIntegration.IsContextMenuEnabled, v => Apply(() => ShellIntegration.SetContextMenu(v))), glyph: Glyphs.OpenLink));
     }
 
     private void GesturesPage(Panel root)
     {
         PageHeader(root, PageName(SettingsPage.Gestures), T("Which key opens which wheel, and a shortcut without the mouse.", "Клавиши открытия меню и сочетание для работы без мыши."));
 
-        root.Children.Add(SectionHeader(T("Gesture", "Жест")));
-        root.Children.Add(Card(
-            T("Grab a file and tap a key while dragging", "Возьмите файл и нажмите клавишу при перетаскивании"),
-            T("A wheel opens; drop the file on a slice. Drop in the middle to cancel. The same key again (or R) repeats the last action.", "Откроется меню — отпустите файл над сектором. Отпустите в центре для отмены. Повторное нажатие той же клавиши (или R) повторит последнее действие."),
-            null, glyph: Glyphs.Extract));
+        // One tile per wheel, in the colour of its key.
+        var tiles = new System.Windows.Controls.Primitives.UniformGrid { Columns = 3, Margin = new Thickness(-6, 18, -6, 0) };
         foreach (var (wheel, description) in new[]
                  {
                      (WheelKind.Convert, T("Convert to another format", "Конвертация в другой формат")),
@@ -361,14 +391,35 @@ internal sealed partial class SettingsWindow : Window
                      (WheelKind.Actions, T("Copy, move, path, terminal, share…", "Копирование, перемещение, путь, терминал, отправка…")),
                  })
         {
-            root.Children.Add(Card(AppSettings.WheelName(wheel), description, KeyChooser(wheel), glyph: WheelGlyph(wheel)));
+            var key = _settings.KeyFor(wheel);
+            var footer = new DockPanel { LastChildFill = false };
+            var chooser = KeyChooser(wheel);
+            DockPanel.SetDock(chooser, Dock.Left);
+            footer.Children.Add(chooser);
+            var icon = Icon(WheelGlyph(wheel), 52, Theme.OnKey);
+            icon.VerticalAlignment = VerticalAlignment.Bottom;
+            Typo.TrimToEm(icon);
+            DockPanel.SetDock(icon, Dock.Right);
+            footer.Children.Add(icon);
+            var tile = Tile(Theme.KeyBrush(key, wheel), AppSettings.WheelName(wheel), description, footer, height: 250);
+            tile.Margin = new Thickness(6, 0, 6, 0);
+            if (key == ModifierKey.None)
+                tile.Opacity = 0.55;
+            tiles.Children.Add(tile);
         }
+        root.Children.Add(tiles);
+
+        root.Children.Add(SectionHeader(T("Gesture", "Жест")));
+        root.Children.Add(Card(
+            T("Grab a file and tap a key while dragging", "Возьмите файл и нажмите клавишу при перетаскивании"),
+            T("A wheel opens; drop the file on a slice. Drop in the middle to cancel. The same key again (or R) repeats the last action.", "Откроется меню — отпустите файл над сектором. Отпустите в центре для отмены. Повторное нажатие той же клавиши (или R) повторит последнее действие."),
+            null, glyph: Glyphs.Drag));
         root.Children.Add(Card(T("Pause gestures", "Приостановить жесты"), T("The wheel won’t open while dragging.", "Меню не открывается при перетаскивании."),
             Toggle(_settings.Paused, v =>
             {
                 _settings.Paused = v;
                 Save();
-            }), glyph: ""));
+            }), glyph: Glyphs.Pause));
 
         root.Children.Add(SectionHeader(T("Keyboard", "Клавиатура")));
         root.Children.Add(Card(T("Shortcut for the File Explorer selection", "Сочетание для выбранных в Проводнике файлов"),
@@ -383,14 +434,14 @@ internal sealed partial class SettingsWindow : Window
                     _settings.Hotkey = value;
                     Save();
                 })),
-            glyph: ""));
+            glyph: Glyphs.Keyboard));
     }
 
     private static string WheelGlyph(WheelKind wheel) => wheel switch
     {
-        WheelKind.Convert => "",
-        WheelKind.Tools => "",
-        _ => "",
+        WheelKind.Convert => Glyphs.Convert,
+        WheelKind.Tools => Glyphs.Tools,
+        _ => Glyphs.Actions,
     };
 
     private void QualityPage(Panel root)
@@ -416,8 +467,8 @@ internal sealed partial class SettingsWindow : Window
             {
                 _tools.Refresh();
                 Rebuild();
-            }, glyph: ""),
-            glyph: ""));
+            }, glyph: Glyphs.Refresh),
+            glyph: Glyphs.Extension));
         root.Children.Add(SectionHeader(T("Helper programs", "Вспомогательные программы")));
         foreach (var tool in Enum.GetValues<ExternalTool>())
             root.Children.Add(ToolCard(tool));
@@ -432,7 +483,7 @@ internal sealed partial class SettingsWindow : Window
         return element;
     }
 
-    private Border KeyChooser(WheelKind wheel) => Segmented(
+    private Border KeyChooser(WheelKind wheel) => Dropdown(
         [("Shift", ModifierKey.Shift), ("Ctrl", ModifierKey.Ctrl), ("Alt", ModifierKey.Alt), (T("Off", "Выкл."), ModifierKey.None)],
         _settings.KeyFor(wheel),
         key =>
@@ -518,7 +569,7 @@ internal sealed partial class SettingsWindow : Window
                 {
                     if (await DownloadTool(tool))
                         Rebuild();
-                }, primary: true, glyph: "")
+                }, primary: true, glyph: Glyphs.Download)
                 : Button(T("Install", "Установить"), () =>
             {
                 try
@@ -531,7 +582,7 @@ internal sealed partial class SettingsWindow : Window
                 {
                     MessageBox.Show(this, ex.Message, "Sweetch", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
-            }, primary: true, glyph: "");
+            }, primary: true, glyph: Glyphs.Download);
             install.Margin = new Thickness(10, 0, 0, 0);
             right.Children.Add(install);
         }

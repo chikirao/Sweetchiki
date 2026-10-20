@@ -1,5 +1,5 @@
 param(
-    [ValidatePattern('^\d+\.\d+(\.\d+){0,2}$')][string]$Version = '1.0',
+    [ValidatePattern('^\d+\.\d+(\.\d+){0,2}$')][string]$Version = '2.0',
     [string]$PublishDirectory = (Join-Path $PSScriptRoot '../publish'),
     [string]$OutputDirectory = (Join-Path $PSScriptRoot '../artifacts'),
     [string]$Compiler

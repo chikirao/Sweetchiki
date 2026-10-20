@@ -70,7 +70,7 @@ internal sealed class JobCard : Border
     /// <summary>Off in the self-test, where offscreen rendering doesn't advance animations.</summary>
     public static bool Animate { get; set; } = true;
 
-    private readonly Border _fill = new() { CornerRadius = new CornerRadius(2), Background = Theme.AccentGradient, HorizontalAlignment = HorizontalAlignment.Left, Width = 0 };
+    private readonly Border _fill = new() { CornerRadius = new CornerRadius(2), Background = Theme.Ink, HorizontalAlignment = HorizontalAlignment.Left, Width = 0 };
     private readonly Grid _bar = new() { Height = 4, Margin = new Thickness(0, 10, 0, 0) };
     private readonly TextBlock _status;
     private readonly StackPanel _buttons;
@@ -123,7 +123,7 @@ internal sealed class JobCard : Border
 
         var close = new TextBlock
         {
-            Text = "\uE711",
+            Text = Glyphs.Close,
             FontFamily = Theme.Icons,
             FontSize = 10,
             Foreground = Theme.Muted,
@@ -200,7 +200,7 @@ internal sealed class JobCard : Border
     {
         _done = true;
         SetFull(warning is null ? Theme.Success : Theme.Error);
-        ShowBadge(warning is null ? "\uE73E" : "\uE7BA", warning is null ? Theme.Success : Theme.Error);
+        ShowBadge(warning is null ? Glyphs.Check : Glyphs.Warning, warning is null ? Theme.Success : Theme.Error);
         _status.Visibility = Visibility.Visible;
         _status.Foreground = warning is null ? Theme.Muted : Theme.Error;
         _status.Text = warning ?? outputs.Count switch
@@ -227,7 +227,7 @@ internal sealed class JobCard : Border
     {
         _done = true;
         SetFull(Theme.Error);
-        ShowBadge("\uE711", Theme.Error);
+        ShowBadge(Glyphs.Close, Theme.Error);
         _status.Visibility = Visibility.Visible;
         _status.Foreground = Theme.Error;
         _status.Text = message;

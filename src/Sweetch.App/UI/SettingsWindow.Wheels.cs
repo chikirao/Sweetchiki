@@ -87,7 +87,7 @@ internal sealed partial class SettingsWindow
             _settings.FavoriteOperations.Clear();
             Save();
             Rebuild();
-        }, glyph: "");
+        }, glyph: Glyphs.Reset);
         DockPanel.SetDock(reset, Dock.Right);
         top.Children.Add(reset);
         root.Children.Add(top);
@@ -123,14 +123,14 @@ internal sealed partial class SettingsWindow
         // 2. the wheel as it will open
         var middle = new StackPanel();
         middle.Children.Add(ColumnLabel(T("2. How the wheel opens", "2. Способ открытия меню")));
-        var preview = WheelWindow.Preview(visible, name, $"{visible.Count} / {ops.Count}", _settings.FavoriteOperations.ToHashSet());
+        var key = _settings.KeyFor(_wheel);
+        var keyName = key == Input.ModifierKey.None ? AppSettings.WheelName(_wheel) : AppSettings.KeyName(key);
+        var preview = WheelWindow.Preview(visible, key, _wheel, keyName, name, $"{visible.Count} / {ops.Count}", _settings.FavoriteOperations.ToHashSet());
         preview.MaxWidth = 420;
         middle.Children.Add(new Border
         {
             Background = Theme.Card,
-            BorderBrush = Theme.PanelBorder,
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(14),
+            CornerRadius = new CornerRadius(CardRadius),
             Padding = new Thickness(10),
             Child = preview,
         });
@@ -149,10 +149,8 @@ internal sealed partial class SettingsWindow
         right.Children.Add(new Border
         {
             Background = Theme.Card,
-            BorderBrush = Theme.PanelBorder,
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(14),
-            Padding = new Thickness(6, 4, 6, 4),
+            CornerRadius = new CornerRadius(CardRadius),
+            Padding = new Thickness(8, 6, 8, 6),
             Child = rows,
         });
         Grid.SetColumn(right, 4);
@@ -177,13 +175,13 @@ internal sealed partial class SettingsWindow
             CornerRadius = new CornerRadius(9),
             MinWidth = 26,
             Padding = new Thickness(7, 1, 7, 2),
-            Background = active ? Theme.AccentGradient : Theme.Track,
+            Background = active ? Theme.Ink : Theme.Track,
             Child = new TextBlock
             {
                 Text = count,
                 FontSize = 11.5,
                 FontWeight = FontWeights.SemiBold,
-                Foreground = active ? Theme.TextOnAccent : Theme.Muted,
+                Foreground = active ? Theme.OnInk : Theme.Muted,
                 HorizontalAlignment = HorizontalAlignment.Center,
             },
             VerticalAlignment = VerticalAlignment.Center,
@@ -195,7 +193,7 @@ internal sealed partial class SettingsWindow
             Text = glyph,
             FontFamily = Theme.Icons,
             FontSize = 15,
-            Foreground = active ? Theme.Accent : Theme.Muted,
+            Foreground = active ? Theme.Ink : Theme.Muted,
             VerticalAlignment = VerticalAlignment.Center,
             Margin = new Thickness(0, 0, 12, 0),
         };
@@ -204,7 +202,7 @@ internal sealed partial class SettingsWindow
         row.Children.Add(Text(name, 14, active ? FontWeights.SemiBold : FontWeights.Normal, wrap: false));
         var item = new Border
         {
-            Background = active ? Theme.AccentSoft : Brushes.Transparent,
+            Background = active ? Theme.Selected : Brushes.Transparent,
             CornerRadius = new CornerRadius(9),
             Padding = new Thickness(12, 9, 10, 9),
             Margin = new Thickness(0, 0, 0, 2),
@@ -231,10 +229,11 @@ internal sealed partial class SettingsWindow
 
         var star = new TextBlock
         {
-            Text = favorite ? "" : "",
+            Text = favorite ? Glyphs.Star : Glyphs.Star,
             FontFamily = Theme.Icons,
-            FontSize = 16,
-            Foreground = favorite ? Theme.Accent : Theme.Muted,
+            FontSize = 20,
+            Foreground = favorite ? Theme.Ink : Theme.Muted,
+            Opacity = favorite ? 1 : 0.35,
             Padding = new Thickness(8),
             Cursor = Cursors.Hand,
             VerticalAlignment = VerticalAlignment.Center,
@@ -272,7 +271,7 @@ internal sealed partial class SettingsWindow
         var isFormat = op.Wheel == WheelKind.Convert && op.Label.Length <= 6 && op.Label.ToUpperInvariant() == op.Label;
         var icon = new TextBlock
         {
-            Text = isFormat ? "" : op.Glyph,
+            Text = isFormat ? Glyphs.Convert : op.Glyph,
             FontFamily = Theme.Icons,
             FontSize = 16,
             Foreground = Theme.Text,

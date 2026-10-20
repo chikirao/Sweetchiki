@@ -31,12 +31,18 @@ internal static class SelfTest
             Check(Brand.DonatePay == "https://donatepay.ru/don/1539048" && Brand.Channel == "https://t.me/mmmorozov", "project links");
             var disabledUpdater = new Shell.Updater();
             Check(disabledUpdater.CheckAsync().GetAwaiter().GetResult() is null && disabledUpdater.LastChecked is null, "updates disabled");
-            log.Add("ok Sweetch 1.0 branding, links, languages and disabled updates");
+            log.Add("ok Sweetch 2.0 branding, links, languages and disabled updates");
             TestBundledPandoc(outDir, log);
-            foreach (var (language, dark, folder) in new[] { (Language.English, true, "en"), (Language.English, false, "en-light"), (Language.Russian, true, "ru"), (Language.Russian, false, "ru-light") })
+            foreach (var (language, dark, low, folder) in new[]
+                     {
+                         (Language.English, true, false, "en"), (Language.English, false, false, "en-light"),
+                         (Language.Russian, true, false, "ru"), (Language.Russian, false, false, "ru-light"),
+                         (Language.Russian, true, true, "ru-low"), (Language.Russian, false, true, "ru-light-low"),
+                     })
             {
                 Loc.Current = language;
                 Theme.Override = dark;
+                Theme.LowContrast = low;
                 Theme.Refresh();
                 RenderAll(Path.Combine(outDir, folder), language == Language.English, log);
             }

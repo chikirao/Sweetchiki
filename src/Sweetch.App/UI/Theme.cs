@@ -1,104 +1,171 @@
 using System.Windows;
 using System.Windows.Media;
 using Microsoft.Win32;
+using Sweetch.App.Input;
+using Sweetch.Core;
 
 namespace Sweetch.App.UI;
 
 /// <summary>
-/// Colours and fonts shared by the wheel, the job cards and the shelf. Follows the Windows
-/// light/dark app setting; <see cref="Refresh"/> re-reads it before a window is built.
+/// Colours and fonts shared by the wheel, the settings, the job cards and the shelf. Follows the
+/// Windows light/dark app setting; <see cref="Refresh"/> re-reads it before a window is built.
+/// <para>
+/// The look: flat surfaces, no gradients or glows, ink (black or paper-white) for anything selected,
+/// and one bright colour per modifier key so you can tell at a glance which wheel is open.
+/// </para>
 /// </summary>
 internal static class Theme
 {
     private static readonly Palette DarkPalette = new(
-        Backdrop: Color.FromArgb(0xF2, 0x0C, 0x0C, 0x0F),
-        BackdropEdge: Color.FromArgb(0x38, 0xD8, 0x24, 0x40),
-        Slice: Color.FromRgb(0x20, 0x20, 0x25),
-        SliceEdge: Color.FromArgb(0x24, 0xFF, 0xFF, 0xFF),
-        Hub: Color.FromRgb(0x10, 0x10, 0x14),
-        Panel: Color.FromArgb(0xFC, 0x13, 0x13, 0x17),
-        PanelEdge: Color.FromArgb(0x25, 0xEF, 0x70, 0x7B),
-        Text: Color.FromRgb(0xFA, 0xF6, 0xF7),
-        Muted: Color.FromRgb(0xAA, 0x9D, 0xA3),
-        Track: Color.FromArgb(0x25, 0xFF, 0xFF, 0xFF),
-        Page: Color.FromRgb(0x0D, 0x0D, 0x11),
-        Card: Color.FromRgb(0x19, 0x18, 0x1E),
-        Hover: Color.FromArgb(0x1A, 0xFF, 0x30, 0x50),
-        Shadow: 0.6);
+        Page: Rgb(0x0B0B0A),
+        Card: Rgb(0x171716),
+        Track: Rgb(0x232321),
+        Line: Rgb(0x2C2C2A),
+        Text: Rgb(0xF3F1EB),
+        Muted: Rgb(0x8E8B84),
+        Panel: Rgb(0x171716),
+        Backdrop: Rgb(0x121211),
+        Hub: Rgb(0x1F1F1D),
+        Shadow: 0.55);
 
     private static readonly Palette LightPalette = new(
-        Backdrop: Color.FromArgb(0xF5, 0xED, 0xF6, 0xFF),
-        BackdropEdge: Color.FromArgb(0x38, 0x2B, 0x78, 0xBC),
-        Slice: Color.FromRgb(0xFF, 0xFF, 0xFF),
-        SliceEdge: Color.FromArgb(0x26, 0x29, 0x6F, 0xAD),
-        Hub: Color.FromRgb(0xF4, 0xFA, 0xFF),
-        Panel: Color.FromArgb(0xFC, 0xF8, 0xFC, 0xFF),
-        PanelEdge: Color.FromArgb(0x28, 0x29, 0x6F, 0xAD),
-        Text: Color.FromRgb(0x15, 0x29, 0x40),
-        Muted: Color.FromRgb(0x55, 0x6D, 0x85),
-        Track: Color.FromArgb(0x24, 0x23, 0x70, 0xAF),
-        Page: Color.FromRgb(0xED, 0xF4, 0xFC),
-        Card: Color.FromRgb(0xFF, 0xFF, 0xFF),
-        Hover: Color.FromArgb(0x14, 0x28, 0x80, 0xD8),
-        Shadow: 0.18);
+        Page: Rgb(0xEDECE8),
+        Card: Rgb(0xFFFFFF),
+        Track: Rgb(0xE3E2DD),
+        Line: Rgb(0xD6D4CE),
+        Text: Rgb(0x0F0F0E),
+        Muted: Rgb(0x6E6C66),
+        Panel: Rgb(0xFFFFFF),
+        Backdrop: Rgb(0xFFFFFF),
+        Hub: Rgb(0x0F0F0E),
+        Shadow: 0.16);
 
     private sealed record Palette(
-        Color Backdrop,
-        Color BackdropEdge,
-        Color Slice,
-        Color SliceEdge,
-        Color Hub,
-        Color Panel,
-        Color PanelEdge,
-        Color Text,
-        Color Muted,
-        Color Track,
         Color Page,
         Color Card,
-        Color Hover,
+        Color Track,
+        Color Line,
+        Color Text,
+        Color Muted,
+        Color Panel,
+        Color Backdrop,
+        Color Hub,
         double Shadow);
 
     private static Palette _palette = DarkPalette;
 
-    public static Color AccentColor => IsDark ? Color.FromRgb(0xEB, 0x24, 0x40) : Color.FromRgb(0x17, 0x71, 0xCB);
-    public static Color AccentColor2 => IsDark ? Color.FromRgb(0xAC, 0x10, 0x2D) : Color.FromRgb(0x42, 0xA5, 0xEF);
+    // ---- the three key colours (the same in both themes; text on them is always ink)
+    public static readonly Color ShiftColor = Rgb(0xFF6B3D);
+    public static readonly Color CtrlColor = Rgb(0xA99CFF);
+    public static readonly Color AltColor = Rgb(0xE4EE5A);
 
-    /// <summary>Red/black or blue/white, used for the selected slice, active tab and progress bars.</summary>
-    public static LinearGradientBrush AccentGradient => Freeze(new LinearGradientBrush(AccentColor, AccentColor2, new Point(0, 0), new Point(1, 1)));
+    /// <summary>
+    /// The "low contrast" colour scheme: every bright colour becomes a quiet tint of the page (dark
+    /// browns, greys and olives on dark, pastels on light) and text on it is soft instead of black.
+    /// </summary>
+    public static bool LowContrast { get; set; }
 
-    public static SolidColorBrush Accent => Freeze(new SolidColorBrush(AccentColor));
-    public static readonly SolidColorBrush TextOnAccent = Freeze(new SolidColorBrush(Colors.White));
-    public static readonly SolidColorBrush Error = Freeze(new SolidColorBrush(Color.FromRgb(0xF0, 0x5A, 0x5A)));
-    public static readonly SolidColorBrush Success = Freeze(new SolidColorBrush(Color.FromRgb(0x3C, 0xC3, 0x6E)));
+    // ---- extra tile colours for the settings pages
+    public static Brush Mint => Solid(Tint(Rgb(0xA6E6CB)));
+    public static Brush Pink => Solid(Tint(Rgb(0xF5B5DE)));
+    public static Brush Sky => Solid(Tint(Rgb(0x9CCBF2)));
 
-    public static readonly FontFamily Icons = new("Segoe Fluent Icons, Segoe MDL2 Assets");
-    public static readonly FontFamily UiFont = new("Segoe UI Variable Text, Segoe UI");
-    public static readonly FontFamily DisplayFont = new("Segoe UI Variable Display, Segoe UI");
+    /// <summary>Near-black and paper, for surfaces that look the same in both themes.</summary>
+    public static readonly SolidColorBrush InkFixed = Solid(Rgb(0x0F0F0E));
+    public static readonly SolidColorBrush PaperFixed = Solid(Rgb(0xF3F1EB));
+    public static readonly SolidColorBrush Error = Solid(Rgb(0xF0564A));
+    public static readonly SolidColorBrush Success = Solid(Rgb(0x2FB36B));
+
+    /// <summary>The colour of a modifier key; a wheel without a key keeps the colour of its usual one.</summary>
+    public static Color KeyColor(ModifierKey key, WheelKind wheel) => Tint(BaseKeyColor(key, wheel));
+
+    /// <summary>
+    /// The key colour where it must stand out: the keycap, the open wheel's dot, the selected slice in
+    /// low contrast. In the bright scheme it is the key colour itself.
+    /// </summary>
+    public static Color KeyStrongColor(ModifierKey key, WheelKind wheel) => LowContrast ? Mix(BaseKeyColor(key, wheel), TintBase, 0.55) : BaseKeyColor(key, wheel);
+
+    public static SolidColorBrush KeyBrush(ModifierKey key, WheelKind wheel) => Solid(KeyColor(key, wheel));
+
+    private static Color BaseKeyColor(ModifierKey key, WheelKind wheel) => key switch
+    {
+        ModifierKey.Shift => ShiftColor,
+        ModifierKey.Ctrl => CtrlColor,
+        ModifierKey.Alt => AltColor,
+        _ => wheel switch
+        {
+            WheelKind.Convert => ShiftColor,
+            WheelKind.Tools => CtrlColor,
+            _ => AltColor,
+        },
+    };
+
+    /// <summary>What a bright colour turns into in the low-contrast scheme.</summary>
+    private static Color Tint(Color color) => LowContrast ? Mix(color, TintBase, IsDark ? 0.28 : 0.34) : color;
+
+    private static Color TintBase => IsDark ? Rgb(0x1A1A19) : Rgb(0xF4F3EF);
+
+    private static Color Mix(Color color, Color with, double amount) => Color.FromRgb(
+        (byte)Math.Round(color.R * amount + with.R * (1 - amount)),
+        (byte)Math.Round(color.G * amount + with.G * (1 - amount)),
+        (byte)Math.Round(color.B * amount + with.B * (1 - amount)));
+
+    /// <summary>Text and icons on the key colours and tiles: ink, or soft paper/graphite in low contrast.</summary>
+    public static SolidColorBrush OnKey => !LowContrast ? InkFixed : Solid(IsDark ? Rgb(0xE2DFD8) : Rgb(0x2B2A27));
+
+    /// <summary>The main button on a tile (and the key picker): ink, or a faint wash in low contrast.</summary>
+    public static Brush TileStrong => LowContrast ? Solid(Color.FromArgb(0x26, OnKey.Color.R, OnKey.Color.G, OnKey.Color.B)) : InkFixed;
+
+    public static Brush TileStrongText => LowContrast ? OnKey : PaperFixed;
+
+    /// <summary>A secondary button or field on a tile.</summary>
+    public static Brush TileSoft => Solid(Color.FromArgb(LowContrast ? (byte)0x14 : (byte)0x17, OnKey.Color.R, OnKey.Color.G, OnKey.Color.B));
+
+    // ---- fonts, bundled so the app looks the same on every PC
+    private static readonly Uri FontBase = PackBase();
+    public static readonly FontFamily UiFont = new(FontBase, "./Assets/Fonts/#Onest, Segoe UI Variable Text, Segoe UI");
+    public static readonly FontFamily DisplayFont = UiFont;
+    public static readonly FontFamily Icons = new(FontBase, "./Assets/Fonts/#Sweetch Icons");
 
     public static bool IsDark { get; private set; } = true;
 
-    public static Brush Backdrop => Solid(_palette.Backdrop);
-    public static Brush BackdropEdge => Solid(_palette.BackdropEdge);
-    public static Brush Slice => Solid(_palette.Slice);
-    public static Brush SliceEdge => Solid(_palette.SliceEdge);
-    public static Brush Hub => Solid(_palette.Hub);
-    public static Brush Panel => Solid(_palette.Panel);
-    public static Brush PanelBorder => Solid(_palette.PanelEdge);
-    public static Brush Text => Solid(_palette.Text);
-    public static Brush Muted => Solid(_palette.Muted);
-    public static Brush Track => Solid(_palette.Track);
     public static Brush Page => Solid(_palette.Page);
     public static Brush Card => Solid(_palette.Card);
-    public static Brush Hover => Solid(_palette.Hover);
-    public static Brush AccentSoft => Solid(Color.FromArgb(IsDark ? (byte)0x38 : (byte)0x26, AccentColor.R, AccentColor.G, AccentColor.B));
+    public static Brush Track => Solid(_palette.Track);
+    public static Brush Text => Solid(_palette.Text);
+    public static Brush Muted => Solid(_palette.Muted);
+    public static Brush Panel => Solid(_palette.Panel);
+    public static Brush PanelBorder => Solid(_palette.Line);
+    public static Brush Backdrop => Solid(_palette.Backdrop);
+    /// <summary>The circle in the middle of the wheel: ink, or a soft grey on a light low-contrast wheel.</summary>
+    public static Brush Hub => Solid(LowContrast && !IsDark ? _palette.Track : _palette.Hub);
 
-    /// <summary>Soft drop shadow under floating surfaces.</summary>
+    public static SolidColorBrush HubText => LowContrast && !IsDark ? Solid(_palette.Text) : PaperFixed;
+
+    /// <summary>Hover over a list row.</summary>
+    public static Brush Hover => Solid(_palette.Track);
+
+    /// <summary>A selected list row.</summary>
+    public static Brush Selected => Solid(_palette.Track);
+
+    /// <summary>Fill for anything active (selected tab, switch that is on, main button): ink on light, paper on dark.</summary>
+    public static Brush Ink => Solid(LowContrast ? Mix(_palette.Text, _palette.Card, IsDark ? 0.72 : 0.8) : _palette.Text);
+
+    /// <summary>Text on <see cref="Ink"/>.</summary>
+    public static Brush OnInk => Solid(_palette.Page);
+
+    /// <summary>
+    /// The highlighted slice: ink on a light wheel, paper on a dark one; in low contrast, a stronger
+    /// tint of the key (<paramref name="strong"/>).
+    /// </summary>
+    public static Color SliceOn(Color strong) => LowContrast ? strong : _palette.Text;
+
+    /// <summary>Label on the highlighted slice: the key colour on ink, ink on paper, soft text in low contrast.</summary>
+    public static Color SliceOnText(Color key) => LowContrast ? OnKey.Color : IsDark ? InkFixed.Color : key;
+
+    /// <summary>Soft drop shadow under floating surfaces (job cards, the shelf).</summary>
     public static System.Windows.Media.Effects.DropShadowEffect Shadow(double blur = 24) =>
-        new() { BlurRadius = blur, ShadowDepth = 3, Direction = 270, Opacity = _palette.Shadow, Color = Colors.Black };
-
-    /// <summary>Coloured glow for the highlighted slice.</summary>
-    public static System.Windows.Media.Effects.DropShadowEffect Glow() =>
-        new() { BlurRadius = 26, ShadowDepth = 0, Opacity = IsDark ? 0.75 : 0.5, Color = AccentColor };
+        new() { BlurRadius = blur, ShadowDepth = 4, Direction = 270, Opacity = _palette.Shadow, Color = Colors.Black };
 
     /// <summary>Forces dark (true) or light (false) instead of following Windows; used by the self-test.</summary>
     public static bool? Override { get; set; }
@@ -125,11 +192,18 @@ internal static class Theme
         }
     }
 
-    private static SolidColorBrush Solid(Color color) => Freeze(new SolidColorBrush(color));
-
-    private static T Freeze<T>(T brush)
-        where T : Freezable
+    private static Uri PackBase()
     {
+        // Touching the scheme registers pack:// even before the Application object exists.
+        _ = System.IO.Packaging.PackUriHelper.UriSchemePack;
+        return new Uri("pack://application:,,,/");
+    }
+
+    private static Color Rgb(int rgb) => Color.FromRgb((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb);
+
+    private static SolidColorBrush Solid(Color color)
+    {
+        var brush = new SolidColorBrush(color);
         brush.Freeze();
         return brush;
     }
