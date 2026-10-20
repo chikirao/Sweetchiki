@@ -105,6 +105,9 @@ internal static class Theme
 
     private static Color TintBase => IsDark ? Rgb(0x1A1A19) : Rgb(0xF4F3EF);
 
+    /// <summary>Background of a warning strip: the error red, softened into the card colour.</summary>
+    public static Brush Alert => Solid(Mix(Error.Color, _palette.Card, IsDark ? 0.24 : 0.16));
+
     private static Color Mix(Color color, Color with, double amount) => Color.FromRgb(
         (byte)Math.Round(color.R * amount + with.R * (1 - amount)),
         (byte)Math.Round(color.G * amount + with.G * (1 - amount)),

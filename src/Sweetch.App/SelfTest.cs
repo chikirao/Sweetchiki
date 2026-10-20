@@ -78,7 +78,8 @@ internal static class SelfTest
     {
         Directory.CreateDirectory(outDir);
         string N(string cs, string en) => english ? en : cs;
-        var settings = new AppSettings();
+        // Previews look the same whatever this machine has installed; the strip gets its own picture below.
+        var settings = new AppSettings { HideMissingTools = true };
         var tools = new ToolLocator();
         var core = WheelController.BuildOperations();
         var actions = Sweetchs.Build(settings, () => { });
@@ -128,6 +129,12 @@ internal static class SelfTest
             narrow.Close();
             if (page == SettingsPage.General)
             {
+                settings.HideMissingTools = false;
+                var strip = new SettingsWindow(settings, new ToolLocator(Path.GetTempPath()), () => { });
+                strip.ExpandForPreview();
+                SaveWindow(strip, Path.Combine(outDir, "settings-missing-tools.png"), 1000);
+                strip.Close();
+                settings.HideMissingTools = true;
                 // As the window opens, with the slim scroll bar.
                 var scrolled = new SettingsWindow(settings, tools, () => { });
                 SaveWindow(scrolled, Path.Combine(outDir, "narrow-scroll.png"), scrolled.MinWidth, height: scrolled.MinHeight);
@@ -155,10 +162,13 @@ internal static class SelfTest
         feedback.Close();
         log.Add($"ok {Path.GetFileName(outDir)}/feedback");
 
+        // A result that exists, so the card shows both "Open" and "Show in folder" as it does for real.
+        var done = Path.Combine(outDir, N("dovolená (komprimováno).jpg", "vacation (compressed).jpg"));
+        File.WriteAllBytes(done, []);
         var jobs = new JobsWindow();
         var running = jobs.Add(N("Převod na MP4", "Convert to MP4"), N("klip.mov", "clip.mov"), () => { }, @"C:\x.mov");
         running.Report(0.42);
-        jobs.Add(N("Komprimovat", "Compress"), N("dovolená.jpg", "vacation.jpg"), () => { }, @"C:\x.jpg").Complete([N(@"C:\Fotky\dovolená (komprimováno).jpg", @"C:\Photos\vacation (compressed).jpg")], null);
+        jobs.Add(N("Komprimovat", "Compress"), N("dovolená.jpg", "vacation.jpg"), () => { }, @"C:\x.jpg").Complete([done], null);
         jobs.Add(N("Převod na DOCX", "Convert to DOCX"), N("smlouva.pdf", "contract.pdf"), () => { }, @"C:\x.pdf").Fail(N("Chybí nástroj Pandoc. Nainstalujte ho příkazem: ", "Pandoc is missing. Install it with: ") + "winget install JohnMacFarlane.Pandoc");
         SaveWindow(jobs, Path.Combine(outDir, "jobs.png"), 380, desktop: true);
         jobs.Close();

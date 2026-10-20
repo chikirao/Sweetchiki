@@ -7,7 +7,10 @@ using static Sweetch.Core.Loc;
 
 namespace Sweetch.App.UI;
 
-/// <summary>The About page: a grid of colour blocks with the wordmark, both authors and their support links.</summary>
+/// <summary>
+/// The About page: a grid of colour blocks with the wordmark, a wide block for this fork's support and smaller
+/// ones for the original author, feedback and updates.
+/// </summary>
 internal sealed partial class SettingsWindow
 {
     private void AboutPage(Panel root)
@@ -15,25 +18,26 @@ internal sealed partial class SettingsWindow
         var grid = new Grid { Margin = new Thickness(-6, 0, -6, 0) };
         grid.ColumnDefinitions.Add(new ColumnDefinition());
         grid.ColumnDefinitions.Add(new ColumnDefinition());
-        for (var i = 0; i < 3; i++)
+        for (var i = 0; i < 4; i++)
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
         Place(grid, Wordmark(), 0, 0, span: 2);
         Place(grid, SupportTile(
+            T("Support the fork", "Поддержать форк"),
+            T($"{Brand.ForkAuthor} rebuilt Sweetch: the new design, an instant wheel, video on the graphics card, a smaller download. If it saves you time, support further work.",
+              $"{Brand.ForkAuthor} переделал Sweetch: новый дизайн, мгновенное колесо, видео на видеокарте, лёгкая загрузка. Если Sweetch экономит вам время, поддержите дальнейшую работу."),
+            Theme.KeyBrush(Input.ModifierKey.Alt, WheelKind.Actions), Brand.ForkTrc20, Brand.ForkDonatePay), 1, 0, span: 2);
+        Place(grid, SupportTile(
             T("Support the author", "Поддержать автора"),
             T($"{Brand.Author} created Sweetch.", $"{Brand.Author} — создатель Sweetch."),
-            Theme.Pink, Brand.Trc20, Brand.DonatePay), 1, 0);
-        Place(grid, SupportTile(
-            T("Support this version", "Поддержать эту версию"),
-            T($"{Brand.ForkAuthor} made this redesign.", $"{Brand.ForkAuthor} — редизайн и эта версия."),
-            Theme.KeyBrush(Input.ModifierKey.Ctrl, WheelKind.Tools), Brand.ForkTrc20, Brand.ForkDonatePay), 1, 1);
+            Theme.Pink, Brand.Trc20, Brand.DonatePay), 2, 0);
 
         var telegram = Button("Telegram", () => Shell.Updater.Open(Brand.Channel), primary: true, glyph: Glyphs.Send, onTile: true);
         Place(grid, Tile(Theme.Mint, T("Ideas and questions", "Идеи и вопросы"),
-            T("News and feedback on the project's Telegram channel.", "Новости и обратная связь в Telegram-канале проекта."), telegram, height: 200), 2, 0);
+            T("News and feedback on the project's Telegram channel.", "Новости и обратная связь в Telegram-канале проекта."), telegram, height: 200), 2, 1);
         Place(grid, Tile(Theme.Sky, T("Updates", "Обновления"),
             T("Automatic updates are disabled. New releases will be announced on the channel.", "Автообновления отключены. Новые версии будут опубликованы в канале."),
-            TileIcon(Glyphs.Update), height: 200), 2, 1);
+            TileIcon(Glyphs.Update), height: 140), 3, 0, span: 2);
         root.Children.Add(grid);
 
         var footer = Text(T("Local processing. Your files stay on your computer.", "Локальная обработка. Ваши файлы остаются на компьютере."), 13, FontWeights.Medium, Theme.Muted);

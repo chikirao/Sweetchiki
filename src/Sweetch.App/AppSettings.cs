@@ -41,6 +41,9 @@ public sealed class AppSettings
     public string? OutputDirectory { get; set; }
 
     public bool RevealResult { get; set; }
+
+    /// <summary>The user closed the "install helper programs" strip in Settings.</summary>
+    public bool HideMissingTools { get; set; }
     public bool Paused { get; set; }
     public bool FirstRunDone { get; set; }
     public string? LastCopyFolder { get; set; }

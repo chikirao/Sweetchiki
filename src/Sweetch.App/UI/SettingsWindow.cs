@@ -152,12 +152,67 @@ internal sealed partial class SettingsWindow : Window
                 AboutPage(page);
                 break;
         }
+        if (MissingToolsBanner() is { } banner)
+            page.Children.Insert(0, banner);
         _scroll.Content = page;
         // The scroll viewer outlives each rebuild (it keeps the position); free it from the old layout.
         (_scroll.Parent as Grid)?.Children.Remove(_scroll);
         Grid.SetColumn(_scroll, 1);
         grid.Children.Add(_scroll);
         Content = grid;
+    }
+
+    /// <summary>
+    /// A reddish strip on top of every page while a helper program is missing, with a shortcut to the page that
+    /// installs it. Closing it hides it for good.
+    /// </summary>
+    private Border? MissingToolsBanner()
+    {
+        var missing = Enum.GetValues<ExternalTool>().Where(t => !_tools.Has(t)).ToList();
+        if (missing.Count == 0 || _settings.HideMissingTools || _page == SettingsPage.Helpers)
+            return null;
+
+        var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+        text.Children.Add(Text(T("Install the helper programs", "Установите доп. программы"), 15, FontWeights.Bold));
+        var names = string.Join(", ", missing.Select(ToolLocator.DisplayName));
+        var detail = Text(T($"Some features need {names}.", $"Без {names} часть функций не работает."), 13.5, brush: Theme.Muted);
+        detail.Margin = new Thickness(0, 3, 0, 0);
+        text.Children.Add(detail);
+
+        var close = Icon(Glyphs.Close, 18, Theme.Muted);
+        close.Cursor = Cursors.Hand;
+        close.ToolTip = T("Don't show again", "Больше не показывать");
+        close.Margin = new Thickness(14, 0, 0, 0);
+        close.VerticalAlignment = VerticalAlignment.Center;
+        close.MouseLeftButtonUp += (_, _) =>
+        {
+            _settings.HideMissingTools = true;
+            Save();
+            Rebuild();
+        };
+        var open = Button(T("Helper programs", "Доп. программы"), () => Page = SettingsPage.Helpers, primary: true, glyph: Glyphs.Extension);
+
+        var warning = Icon(Glyphs.Warning, 24, Theme.Error);
+        warning.Margin = new Thickness(0, 0, 14, 0);
+        warning.VerticalAlignment = VerticalAlignment.Center;
+        var row = new DockPanel();
+        DockPanel.SetDock(close, Dock.Right);
+        row.Children.Add(close);
+        DockPanel.SetDock(warning, Dock.Left);
+        row.Children.Add(warning);
+        DockPanel.SetDock(open, Dock.Right);
+        row.Children.Add(open);
+        row.Children.Add(text);
+        RightOrUnder(row, open, room: 300, beside: new Thickness(16, 0, 0, 0), under: new Thickness(0, 12, 0, 0));
+
+        return new Border
+        {
+            Background = Theme.Alert,
+            CornerRadius = new CornerRadius(CardRadius),
+            Padding = new Thickness(20, 16, 18, 16),
+            Margin = new Thickness(0, 0, 0, 28),
+            Child = row,
+        };
     }
 
     private static string PageName(SettingsPage page) => page switch
@@ -232,17 +287,21 @@ internal sealed partial class SettingsWindow : Window
         };
     }
 
-    /// <summary>The pink "Support the project" block at the bottom of the sidebar.</summary>
+    /// <summary>The lime "Support the fork" block at the bottom of the sidebar; opens the About page.</summary>
     private Border SupportTile()
     {
         var content = new StackPanel();
         content.Children.Add(Icon(Glyphs.Heart, 28, Theme.OnKey));
-        var label = Heading(T("Support the project", "Поддержать проект"), 16, Theme.OnKey);
+        var label = Heading(T("Support the fork", "Поддержать форк"), 16, Theme.OnKey);
         label.Margin = new Thickness(0, 18, 0, 0);
         content.Children.Add(label);
+        var by = Text(T($"{Brand.ForkAuthor}: redesign and speed-ups", $"{Brand.ForkAuthor}: редизайн и ускорение"), 12.5, FontWeights.SemiBold, Theme.OnKey);
+        by.Opacity = 0.7;
+        by.Margin = new Thickness(0, 4, 0, 0);
+        content.Children.Add(by);
         var tile = new Border
         {
-            Background = Theme.Pink,
+            Background = Theme.KeyBrush(ModifierKey.Alt, WheelKind.Actions),
             CornerRadius = new CornerRadius(CardRadius),
             Padding = new Thickness(16),
             Cursor = Cursors.Hand,

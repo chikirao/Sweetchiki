@@ -73,7 +73,7 @@ internal sealed class JobCard : Grid
     private readonly Border _fill = new() { CornerRadius = new CornerRadius(2), Background = Theme.Ink, HorizontalAlignment = HorizontalAlignment.Left, Width = 0 };
     private readonly Grid _bar = new() { Height = 4, Margin = new Thickness(0, 10, 0, 0) };
     private readonly TextBlock _status;
-    private readonly StackPanel _buttons;
+    private readonly WrapPanel _buttons;
     private readonly TextBlock _badge;
     private readonly Action<JobCard> _remove;
     private readonly Action _cancel;
@@ -127,8 +127,9 @@ internal sealed class JobCard : Grid
         _bar.SizeChanged += (_, _) => _fill.Width = _bar.ActualWidth * _value;
         StartPulse();
         _status = new TextBlock { Foreground = Theme.Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0), Visibility = Visibility.Collapsed };
-        _buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 10, 0, 0) };
-        _buttons.Children.Add(UI.Controls.Button(T("Cancel", "Отмена"), () => _cancel()));
+        // Wraps: "Open" and "Show in folder" don't fit side by side on the narrow card.
+        _buttons = new WrapPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 10, 0, -8) };
+        AddButton(UI.Controls.Button(T("Cancel", "Отмена"), () => _cancel()));
 
         var close = new TextBlock
         {
@@ -282,8 +283,7 @@ internal sealed class JobCard : Grid
 
     private void AddButton(Border button)
     {
-        if (_buttons.Children.Count > 0)
-            button.Margin = new Thickness(8, 0, 0, 0);
+        button.Margin = new Thickness(0, 0, 8, 8);
         _buttons.Children.Add(button);
     }
 
