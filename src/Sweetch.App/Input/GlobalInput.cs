@@ -132,14 +132,25 @@ internal sealed class GlobalInput : IDisposable
                 var flags = (uint)Marshal.ReadInt32(lParam, 8);
                 var message = (int)wParam;
                 var injected = (flags & Win32.LLKHF_INJECTED) != 0;
-                if (vk == 0x09 && !injected && _dragging && TabFlips?.Invoke() == true)
+                if (vk == 0x09 && !injected)
                 {
-                    // Down and up are both swallowed, or the drag source would get half a key press.
                     var down = message is Win32.WM_KEYDOWN or Win32.WM_SYSKEYDOWN;
-                    if (down && !_tabDown)
-                        _dispatcher.BeginInvoke(() => TabPressed?.Invoke());
-                    _tabDown = down;
-                    return 1;
+                    if (down && (_tabDown || (_dragging && TabFlips?.Invoke() == true)))
+                    {
+                        if (!_tabDown)
+                            _dispatcher.BeginInvoke(() => TabPressed?.Invoke());
+                        _tabDown = true;
+                        // Shift+Tab is a combination: releasing Shift afterwards must not count as a tap.
+                        _pendingTap = ModifierKey.None;
+                        return 1;
+                    }
+                    if (!down && _tabDown)
+                    {
+                        // The release of a press we kept, even if the drop already ended the drag: swallowed too,
+                        // or the window below would get half a key press, and the next drag's Tab would be lost.
+                        _tabDown = false;
+                        return 1;
+                    }
                 }
                 // Ignore synthetic keys (ours and other tools'); a tap must come from the keyboard.
                 if (!injected)
