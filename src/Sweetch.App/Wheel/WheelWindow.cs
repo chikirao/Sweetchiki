@@ -146,6 +146,9 @@ internal sealed class WheelWindow : Window
     /// <summary>The last operation if it fits these items (for the "repeat last" view).</summary>
     public Func<IReadOnlyList<FileItem>, Operation?>? LastOperation { get; set; }
 
+    /// <summary>Called once the person has turned a wheel for the first time (the app saves the settings).</summary>
+    public Action? Learned { get; set; }
+
     /// <summary>Runs the last operation again with the values it used last time.</summary>
     public Action<IReadOnlyList<FileItem>>? RunRepeat { get; set; }
 
@@ -252,6 +255,11 @@ internal sealed class WheelWindow : Window
         if (_finished || _repeat || _otherSide == 0)
             return;
         _back = !_back;
+        if (!_settings.FlipLearned)
+        {
+            _settings.FlipLearned = true;
+            Learned?.Invoke();
+        }
         LoadOperations();
         Build();
         if (Mode == WheelMode.Click && _ops.Count > 0)
@@ -722,14 +730,14 @@ internal sealed class WheelWindow : Window
     /// A still picture of a wheel with these slices, drawn exactly like the real one (used by the
     /// wheel page in Settings). <paramref name="highlight"/> slices are painted as if selected.
     /// </summary>
-    internal static FrameworkElement Preview(IReadOnlyList<Operation> ops, Input.ModifierKey key, WheelKind wheel, string keyName, string title, string detail, ISet<string>? highlight = null, bool back = false)
+    internal static FrameworkElement Preview(IReadOnlyList<Operation> ops, Input.ModifierKey key, WheelKind wheel, string keyName, string title, string detail, ISet<string>? highlight = null, bool back = false, int pages = 1)
     {
         var canvas = new Canvas { Width = Size, Height = Size };
         var strong = Theme.KeyStrongColor(key, wheel);
         Draw(canvas, ops, Theme.KeyColor(key, wheel), strong, highlight, null, null, back);
         var hub = new Hub(null);
         hub.Place(canvas);
-        hub.Show(keyName, strong, title, detail, [], -1);
+        hub.Show(keyName, strong, title, detail, [], -1, back ? 2 : 1, pages);
         return new Viewbox { Child = canvas, Stretch = Stretch.Uniform };
     }
 
@@ -815,11 +823,12 @@ internal sealed class WheelWindow : Window
             .ToList();
         var current = wheels.FindIndex(w => w.w == _wheel);
         var (title, detail) = HubText();
-        var flip = _otherSide == 0 ? null
-            : _back ? T("Scroll: back", "Колёсико: назад")
-            : T($"Scroll: {_otherSide} more", $"Колёсико: ещё {_otherSide}");
-        _hub.Show(keyName, KeyStrong, title, detail, wheels, current, flip, _back);
+        var pages = _otherSide > 0 ? 2 : 1;
+        _hub.Show(keyName, KeyStrong, title, detail, wheels, current, _back ? 2 : 1, pages, Teach);
     }
+
+    /// <summary>Until the person has turned a wheel once, a wheel with two pages says how, in the key colour.</summary>
+    private bool Teach => _otherSide > 0 && !_settings.FlipLearned && !_repeat;
 
     private (string Title, string Detail) HubText()
     {
@@ -838,6 +847,8 @@ internal sealed class WheelWindow : Window
             return (op.Label, op.Subtitle ?? DescribeItems());
         }
         var name = AppSettings.WheelName(_wheel);
+        if (Teach)
+            return (name, T("Scroll for more", "Крутите колёсико"));
         if (_items.Count == 0)
             return (name, T("Drag a file here", "Перетащите файл сюда"));
         if (_ops.Count == 0)
@@ -861,18 +872,21 @@ internal sealed class WheelWindow : Window
         private readonly TextBlock _detail = Line(11.5, FontWeights.Medium, 0.55);
         private readonly StackPanel _dots = new() { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 12, 0, 0) };
         private readonly Action<WheelKind>? _switch;
-        private readonly Border _flipHint = new() { CornerRadius = new CornerRadius(8), HorizontalAlignment = HorizontalAlignment.Center, Padding = new Thickness(8, 3, 9, 4), Margin = new Thickness(0, 10, 0, 0) };
-        private readonly TextBlock _flipText = new() { FontSize = 11, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center };
-        private readonly TextBlock _flipIcon = new() { FontSize = 13, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 5, 0) };
+        // "Pages": a mouse, one bar per page with the current one filled, and "1 / 2".
+        private readonly Border _flipHint = new() { CornerRadius = new CornerRadius(9), HorizontalAlignment = HorizontalAlignment.Center, Padding = new Thickness(7, 4, 9, 4), Margin = new Thickness(0, 10, 0, 0) };
+        private readonly TextBlock _flipText = new() { FontSize = 11.5, FontWeight = FontWeights.Bold, VerticalAlignment = VerticalAlignment.Center };
+        private readonly TextBlock _flipIcon = new() { FontSize = 15, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 4, 0) };
+        private readonly StackPanel _pager = new() { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 6, 0) };
         private Canvas? _canvas;
 
         public Hub(Action<WheelKind>? switchTo, Action? flip = null)
         {
             _switch = switchTo;
             _flipIcon.FontFamily = Theme.Icons;
-            _flipIcon.Text = Sweetch.Core.Glyphs.Repeat;
+            _flipIcon.Text = Sweetch.Core.Glyphs.Mouse;
             var hint = new StackPanel { Orientation = Orientation.Horizontal };
             hint.Children.Add(_flipIcon);
+            hint.Children.Add(_pager);
             hint.Children.Add(_flipText);
             _flipHint.Child = hint;
             if (flip is not null)
@@ -909,15 +923,30 @@ internal sealed class WheelWindow : Window
             MaxWidth = ContentWidth,
         };
 
-        /// <param name="flip">The hint that the wheel has another side ("Scroll: 6 more"), or null when it hasn't.</param>
-        public void Show(string keyName, Color key, string title, string detail, IReadOnlyList<(WheelKind Wheel, Color Color)> wheels, int current, string? flip = null, bool back = false)
+        /// <param name="page">Which page is up, of <paramref name="pages"/>; with one page there is no pager.</param>
+        /// <param name="teach">First time: the pager is drawn in the key colour so it can't be missed.</param>
+        public void Show(string keyName, Color key, string title, string detail, IReadOnlyList<(WheelKind Wheel, Color Color)> wheels, int current, int page = 1, int pages = 1, bool teach = false)
         {
-            // On the back side the hint is filled with the key colour, so it's plain which side is up.
-            _flipHint.Visibility = flip is null ? Visibility.Collapsed : Visibility.Visible;
-            _flipText.Text = flip ?? "";
-            // On the front it's the hub's own colour, a tab hanging off the hub.
-            _flipHint.Background = back ? new SolidColorBrush(key) : Theme.Hub;
-            _flipText.Foreground = _flipIcon.Foreground = back ? Theme.OnKey : Theme.HubText;
+            // A tab of the hub's own colour hanging off it; in the key colour on page 2 and while teaching.
+            var lit = teach || page > 1;
+            var ink = lit ? Theme.OnKey : Theme.HubText;
+            _flipHint.Visibility = pages > 1 ? Visibility.Visible : Visibility.Collapsed;
+            _flipHint.Background = lit ? new SolidColorBrush(key) : Theme.Hub;
+            _flipText.Text = $"{page} / {pages}";
+            _flipText.Foreground = _flipIcon.Foreground = ink;
+            _pager.Children.Clear();
+            for (var i = 1; i <= pages; i++)
+            {
+                _pager.Children.Add(new Border
+                {
+                    Width = 4,
+                    Height = 6,
+                    CornerRadius = new CornerRadius(2),
+                    Background = ink,
+                    Opacity = i == page ? 1 : 0.35,
+                    Margin = new Thickness(0, i == 1 ? 0 : 2, 0, 0),
+                });
+            }
             _key.Text = keyName.ToUpperInvariant();
             _keycap.Background = new SolidColorBrush(key);
             _key.Foreground = Theme.OnKey;

@@ -60,6 +60,9 @@ public sealed class AppSettings
     /// <summary>Slices the user moved to the other side of the wheel than the one they come on.</summary>
     public List<string> FlippedOperations { get; set; } = [];
 
+    /// <summary>The person has turned a wheel to its other page once; until then the wheel shows how.</summary>
+    public bool FlipLearned { get; set; }
+
     /// <summary>On the wheel's other side (scroll to flip): rare ones, unless the user swapped them.</summary>
     public bool IsBackSide(Operation op) => op.Rare != FlippedOperations.Contains(op.Id);
 

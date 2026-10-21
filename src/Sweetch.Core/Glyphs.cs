@@ -73,6 +73,8 @@ public static class Glyphs
     public const string Info = "\uE88E";           // info
     public const string Drag = "\uF71E";           // drag_pan
     public const string ChevronDown = "\uE5CF";    // expand_more
+    public const string Mouse = "\uE323";          // mouse
+    public const string ChevronRight = "\uE5CC";   // chevron_right
 
     // ---- the three wheels
     public const string Convert = "\uE8D4";        // swap_horiz

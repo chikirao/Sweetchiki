@@ -223,6 +223,7 @@ internal sealed class WheelController
             window = new WheelWindow(mode, wheel, items, _settings, Operations, _jobs.Start);
         }
         window.LastOperation = LastFor;
+        window.Learned = _settings.Save;
         window.RunRepeat = targets =>
         {
             if (LastFor(targets) is { } last)

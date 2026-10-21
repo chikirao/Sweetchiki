@@ -111,7 +111,7 @@ internal sealed class App : Application
             _settings.FirstRunDone = true;
             _settings.Save();
             TryIntegrateOnFirstRun();
-            OpenSettings();
+            ShowHelp();
         }
         else if (_args.Contains("--updated"))
         {
@@ -216,49 +216,7 @@ internal sealed class App : Application
         _settings.Save();
     }
 
-    private void ShowHelp()
-    {
-        var convert = AppSettings.KeyName(_settings.ConvertKey);
-        var tools = AppSettings.KeyName(_settings.ToolsKey);
-        var actions = AppSettings.KeyName(_settings.ActionsKey);
-        var hotkey = AppSettings.HotkeyName(_settings.Hotkey);
-        var text = T(
-            $"""
-            1. Grab a file with the mouse (in File Explorer, on the desktop, an image in your browser, an Outlook attachment…).
-            2. While dragging, tap a key:
-                 {convert} – convert to another format
-                 {tools} – tools (compress, shrink, trim, merge…)
-                 {actions} – actions (copy, move, path, terminal, floating shelf, share)
-            3. Drop the file on a slice of the wheel. Drop it in the middle to cancel.
-
-            The wheel stays open until you drop; you can release the key and tap another one to switch wheels.
-            Tap the same key again to "repeat the last action".
-
-            Without the mouse: select files in File Explorer (or copy a file or a screenshot) and press {hotkey}.
-            Arrows pick a slice, Enter runs it, Tab switches wheels, Esc closes.
-            Also via right-click → “Sweetch…”.
-
-            The result is saved next to the original file; the original stays untouched.
-            """,
-            $"""
-            1. Возьмите файл мышью: в Проводнике, на рабочем столе, изображение в браузере или вложение Outlook.
-            2. При перетаскивании нажмите клавишу:
-                 {convert} — конвертация в другой формат
-                 {tools} — инструменты: сжатие, уменьшение, обрезка, объединение
-                 {actions} — действия: копирование, перемещение, путь, терминал, плавающая полка, отправка
-            3. Отпустите файл над сектором меню. В центре — отмена.
-
-            Меню остаётся открытым, пока вы не отпустите файл. Можно отпустить клавишу и нажать другую для смены меню.
-            Повторное нажатие той же клавиши повторяет последнее действие.
-
-            Без мыши: выберите файлы в Проводнике (или скопируйте файл либо снимок экрана) и нажмите {hotkey}.
-            Стрелки — выбор сектора, Enter — запуск, Tab — смена меню, Esc — закрыть.
-            Также можно нажать правой кнопкой → «Sweetch…».
-
-            Результат сохраняется рядом с исходным файлом. Исходник не изменяется.
-            """);
-        MessageBox.Show(text, T("How Sweetch works", "Как работает Sweetch"), MessageBoxButton.OK, MessageBoxImage.Information);
-    }
+    private void ShowHelp() => UI.TutorialWindow.ShowSingle(_settings, OpenSettings);
 
     private void OnUnhandled(object sender, DispatcherUnhandledExceptionEventArgs e)
     {

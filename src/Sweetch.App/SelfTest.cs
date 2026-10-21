@@ -120,6 +120,11 @@ internal static class SelfTest
             flipped.RenderPreview(Path.Combine(outDir, name + ".png"), 1);
             flipped.Close();
         }
+        // Once a wheel has been turned, the pager stays quiet in the hub colour.
+        var learned = new WheelWindow(WheelMode.Drag, WheelKind.Convert, [new FileItem("vacation.jpg")], settings, Source, (_, _) => { });
+        learned.RenderPreview(Path.Combine(outDir, "wheel-image-convert-learned.png"), -1);
+        learned.Close();
+        settings.FlipLearned = false;
         log.Add($"ok {Path.GetFileName(outDir)}/wheel back sides");
 
         SettingsWindow.Operations = () => [.. core, .. actions];
@@ -177,6 +182,13 @@ internal static class SelfTest
         SaveWindow(watchDialog, Path.Combine(outDir, "watch-dialog.png"), 640);
         watchDialog.Close();
         log.Add($"ok {Path.GetFileName(outDir)}/preset and watch dialogs");
+        for (var step = 0; step < 4; step++)
+        {
+            var tutorial = TutorialWindow.ForPreview(settings, step);
+            SaveWindow(tutorial, Path.Combine(outDir, $"tutorial-{step + 1}.png"), 900);
+            tutorial.Close();
+        }
+        log.Add($"ok {Path.GetFileName(outDir)}/tutorial");
 
         var toolsWheel = new SettingsWindow(settings, tools, () => { });
         toolsWheel.ShowWheel(WheelKind.Tools, 0);
