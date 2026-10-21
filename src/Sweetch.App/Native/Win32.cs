@@ -25,6 +25,14 @@ internal static class Win32
     public const int SM_CXDRAG = 68;
     public const int SM_CYDRAG = 69;
 
+    public const uint GA_ROOT = 2;
+
+    /// <summary>GUITHREADINFO.flags: the thread is moving or sizing a window, or is inside a menu.</summary>
+    public const uint GUI_INMOVESIZE = 0x0002;
+    public const uint GUI_INMENUMODE = 0x0004;
+    public const uint GUI_SYSTEMMENUMODE = 0x0008;
+    public const uint GUI_POPUPMENUMODE = 0x0010;
+
     public const int GWL_EXSTYLE = -20;
     public const long WS_EX_TOOLWINDOW = 0x00000080;
     public const long WS_EX_NOACTIVATE = 0x08000000;
@@ -60,6 +68,20 @@ internal static class Win32
         public int Top;
         public int Right;
         public int Bottom;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct GUITHREADINFO
+    {
+        public int cbSize;
+        public uint flags;
+        public IntPtr hwndActive;
+        public IntPtr hwndFocus;
+        public IntPtr hwndCapture;
+        public IntPtr hwndMenuOwner;
+        public IntPtr hwndMoveSize;
+        public IntPtr hwndCaret;
+        public RECT rcCaret;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -144,6 +166,20 @@ internal static class Win32
 
     [DllImport("user32.dll")]
     public static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    public static extern uint GetWindowThreadProcessId(IntPtr hWnd, IntPtr lpdwProcessId);
+
+    /// <summary>What a thread is doing with the mouse; fails for a thread we may not ask, e.g. an elevated app.</summary>
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool GetGUIThreadInfo(uint idThread, ref GUITHREADINFO pgui);
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr WindowFromPoint(POINT point);
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetAncestor(IntPtr hwnd, uint gaFlags);
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
