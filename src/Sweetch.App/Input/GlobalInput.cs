@@ -15,8 +15,10 @@ public enum ModifierKey
 
 /// <summary>
 /// Low-level mouse and keyboard hooks on a dedicated thread. Detects "a modifier was tapped while the
-/// left mouse button is dragging something" – the gesture that opens a wheel – and forwards events to
-/// the UI dispatcher.
+/// left mouse button is carrying something" – the gesture that opens a wheel – and forwards events to
+/// the UI dispatcher. Whether the button really carries a drag &amp; drop, and not a brush stroke or a
+/// selection, is <see cref="DragSession"/>'s question; it is asked when a wheel key is tapped, so the
+/// hooks themselves stay cheap.
 /// </summary>
 internal sealed class GlobalInput : IDisposable
 {
@@ -68,6 +70,7 @@ internal sealed class GlobalInput : IDisposable
     /// <summary>Called on the hook thread to decide whether Alt taps should be neutralised.</summary>
     public Func<ModifierKey, bool>? IsWheelKey { get; set; }
 
+    /// <summary>The left button moved past the drag threshold, which is only the pre-filter: see <see cref="DragSession.IsCarrying"/>.</summary>
     public bool IsDragging => _dragging;
 
     private bool _tabDown;
@@ -191,7 +194,9 @@ internal sealed class GlobalInput : IDisposable
         if (modifier != ModifierKey.None && modifier == _pendingTap)
         {
             _pendingTap = ModifierKey.None;
-            if (_dragging)
+            // Only something being carried opens a wheel. A brush stroke, a selection or a window border holds
+            // the button just as long, and that is the case DragSession tells apart.
+            if (_dragging && _leftDown && DragSession.IsCarrying(Cursor))
                 _dispatcher.BeginInvoke(() => ModifierTapped?.Invoke(modifier));
         }
         else if (modifier == ModifierKey.None)

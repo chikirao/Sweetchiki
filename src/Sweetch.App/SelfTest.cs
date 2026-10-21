@@ -50,7 +50,7 @@ internal static class SelfTest
             TestSpeed(log);
             log.AddRange(SmokeTest.Run(Path.Combine(outDir, "smoke")));
             // Saved after every step, so a hard crash (which skips the catch below) still shows where it stopped.
-            foreach (var step in new Action[] { () => TestSettingsRoundTrip(log), () => TestExplorerCom(outDir, log), () => TestDrops(log), () => TestWatchFolder(outDir, log), () => TestOcr(outDir, log), () => log.Add("ok updates: checked by the app, not by the self-test") })
+            foreach (var step in new Action[] { () => TestSettingsRoundTrip(log), () => TestDragSession(log), () => TestExplorerCom(outDir, log), () => TestDrops(log), () => TestWatchFolder(outDir, log), () => TestOcr(outDir, log), () => log.Add("ok updates: checked by the app, not by the self-test") })
             {
                 File.WriteAllLines(Path.Combine(outDir, "self-test.txt"), log);
                 step();
@@ -368,6 +368,22 @@ internal static class SelfTest
 
     [System.Runtime.InteropServices.DllImport("user32.dll")]
     private static extern bool PostMessage(IntPtr hwnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+    /// <summary>
+    /// The rule that keeps the wheel for real drag &amp; drop: a captured window of the app's own means the
+    /// mouse is in use (a brush, a selection, a window border), anything else means something is carried.
+    /// </summary>
+    private static void TestDragSession(List<string> log)
+    {
+        var app = (IntPtr)1;
+        var carried = (IntPtr)2;
+        Check(Input.DragSession.Carries(0, carried, app), "a foreign capture carries something");
+        Check(!Input.DragSession.Carries(0, app, app), "the app capturing the window under the pointer is no drag & drop");
+        Check(!Input.DragSession.Carries(Native.Win32.GUI_INMOVESIZE, carried, app), "moving a window is no drag & drop");
+        Check(!Input.DragSession.Carries(Native.Win32.GUI_POPUPMENUMODE, carried, app), "a menu is no drag & drop");
+        Check(!Input.DragSession.Carries(0, IntPtr.Zero, app) && !Input.DragSession.Carries(0, carried, IntPtr.Zero), "nothing captured or nothing under the pointer: nothing carried");
+        log.Add("ok drag/gesture");
+    }
 
     /// <summary>Virtual files (as browsers and Outlook drag them) and raw images become real files.</summary>
     private static void TestDrops(List<string> log)
