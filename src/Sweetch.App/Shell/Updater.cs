@@ -134,12 +134,14 @@ internal sealed class Updater
         return $$"""
             $ErrorActionPreference = 'Stop'
             while (Get-Process -Id {{processId}} -ErrorAction SilentlyContinue) { Start-Sleep -Milliseconds 300 }
-            # Antivirus or Explorer may still hold a file for a moment.
-            for ($i = 0; $i -lt 10; $i++) {
-                try { Copy-Item -Path (Join-Path {{Quote(from)}} '*') -Destination {{Quote(to)}} -Recurse -Force; break }
+            # Antivirus or Explorer may still hold a file for a moment. If it never lets go, the old version
+            # starts again and says the update failed, rather than claiming success.
+            $copied = $false
+            for ($i = 0; $i -lt 10 -and -not $copied; $i++) {
+                try { Copy-Item -Path (Join-Path {{Quote(from)}} '*') -Destination {{Quote(to)}} -Recurse -Force; $copied = $true }
                 catch { Start-Sleep -Seconds 1 }
             }
-            Start-Process -FilePath (Join-Path {{Quote(to)}} 'Sweetch.exe') -ArgumentList '--updated'
+            Start-Process -FilePath (Join-Path {{Quote(to)}} 'Sweetch.exe') -ArgumentList $(if ($copied) { '--updated' } else { '--update-failed' })
             """;
     }
 

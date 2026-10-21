@@ -113,6 +113,10 @@ internal sealed class App : Application
             TryIntegrateOnFirstRun();
             ShowHelp();
         }
+        else if (_args.Contains("--update-failed"))
+        {
+            _tray.Show(T("Sweetch couldn't update", "Sweetch не обновился"), T("Its folder is read-only or a file was in use. Download the new version from GitHub.", "Папка защищена от записи или файл был занят. Скачайте новую версию с GitHub."), false);
+        }
         else if (_args.Contains("--updated"))
         {
             _tray.Show(T("Sweetch was updated", "Sweetch обновлён"), T($"Version {Updater.Current}", $"Версия {Updater.Current}"), false);

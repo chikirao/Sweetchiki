@@ -129,17 +129,19 @@ public static partial class SubtitleBackend
         return Timeline(lines);
     }
 
-    /// <summary>TTML / DFXP: &lt;p begin end|dur&gt; in any namespace.</summary>
+    /// <summary>TTML / DFXP: &lt;p begin end|dur&gt; in any namespace, with the document's own frame and tick rates.</summary>
     public static List<Cue> ParseTtml(string text)
     {
         var cues = new List<Cue>();
-        foreach (var p in XDocument.Parse(text).Descendants().Where(e => e.Name.LocalName == "p"))
+        var document = XDocument.Parse(text);
+        var rate = TtmlRate.Of(document.Root!);
+        foreach (var p in document.Descendants().Where(e => e.Name.LocalName == "p"))
         {
             var begin = (string?)p.Attribute("begin");
             if (begin is null)
                 continue;
-            var start = TtmlTime(begin);
-            var end = (string?)p.Attribute("end") is { } e ? TtmlTime(e) : start + TtmlTime((string?)p.Attribute("dur") ?? "3s");
+            var start = TtmlTime(begin, rate);
+            var end = (string?)p.Attribute("end") is { } e ? TtmlTime(e, rate) : start + TtmlTime((string?)p.Attribute("dur") ?? "3s", rate);
             var body = new StringBuilder();
             foreach (var node in p.DescendantNodes())
             {
@@ -153,14 +155,31 @@ public static partial class SubtitleBackend
         return cues;
     }
 
-    private static TimeSpan TtmlTime(string value)
+    /// <summary>
+    /// ttp:frameRate (× frameRateMultiplier, default 30) for "f" and hh:mm:ss:ff; ttp:tickRate for "t", which
+    /// defaults to the frame rate when one is given and to 1 otherwise (TTML 1, 10.2.10).
+    /// </summary>
+    private sealed record TtmlRate(double Fps, double Ticks)
+    {
+        public static TtmlRate Of(XElement root)
+        {
+            string? Param(string name) => root.Attributes().FirstOrDefault(a => a.Name.LocalName == name)?.Value;
+            double Number(string? s, double fallback) => double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out var v) && v > 0 ? v : fallback;
+            var fps = Number(Param("frameRate"), 30);
+            if (Param("frameRateMultiplier")?.Split(' ', StringSplitOptions.RemoveEmptyEntries) is [var n, var d])
+                fps *= Number(n, 1) / Number(d, 1);
+            return new TtmlRate(fps, Number(Param("tickRate"), Param("frameRate") is null ? 1 : fps));
+        }
+    }
+
+    private static TimeSpan TtmlTime(string value, TtmlRate rate)
     {
         value = value.Trim();
         if (value.Contains(':'))
         {
             var parts = value.Split(':');
-            if (parts.Length == 4) // hh:mm:ss:frames, taken at 30 fps
-                return ParseTimestamp(string.Join(':', parts[..3])) + TimeSpan.FromSeconds(double.Parse(parts[3], CultureInfo.InvariantCulture) / 30);
+            if (parts.Length == 4) // hh:mm:ss:frames
+                return ParseTimestamp(string.Join(':', parts[..3])) + TimeSpan.FromSeconds(double.Parse(parts[3], CultureInfo.InvariantCulture) / rate.Fps);
             return ParseTimestamp(value);
         }
         var unit = value.TrimStart("0123456789.".ToCharArray());
@@ -170,8 +189,8 @@ public static partial class SubtitleBackend
             "h" => TimeSpan.FromHours(number),
             "m" => TimeSpan.FromMinutes(number),
             "ms" => TimeSpan.FromMilliseconds(number),
-            "f" => TimeSpan.FromSeconds(number / 30),
-            "t" => TimeSpan.FromTicks((long)number),
+            "f" => TimeSpan.FromSeconds(number / rate.Fps),
+            "t" => TimeSpan.FromSeconds(number / rate.Ticks),
             _ => TimeSpan.FromSeconds(number),
         };
     }

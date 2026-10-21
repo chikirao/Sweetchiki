@@ -36,6 +36,32 @@ public class DataAndSubtitleTests
     }
 
     [Fact]
+    public void Ttml_times_follow_the_documents_frame_and_tick_rates()
+    {
+        static TimeSpan Start(string root, string begin) => SubtitleBackend.ParseTtml(
+            $"""<tt xmlns="http://www.w3.org/ns/ttml" xmlns:ttp="http://www.w3.org/ns/ttml#parameter" {root}><body><div><p begin="{begin}" dur="1s">x</p></div></body></tt>""").Single().Start;
+        Assert.Equal(TimeSpan.FromSeconds(1), Start("""ttp:frameRate="25" """, "25f"));
+        Assert.Equal(TimeSpan.FromSeconds(1), Start("""ttp:tickRate="10" """, "10t"));
+        Assert.Equal(TimeSpan.FromSeconds(1), Start("", "1t")); // no rates: one tick per second
+        Assert.Equal(TimeSpan.FromSeconds(2.5), Start("""ttp:frameRate="24" """, "00:00:02:12"));
+    }
+
+    [Fact]
+    public void Stylesheets_get_pictures_listed_after_them()
+    {
+        var css = new MimeKit.TextPart("css") { Text = "body{background:url(https://example.com/bg.png)}", ContentLocation = new Uri("https://example.com/a.css") };
+        var page = new MimeKit.Multipart("related")
+        {
+            new MimeKit.TextPart("html") { Text = "<link rel=stylesheet href=\"https://example.com/a.css\">" },
+            css,
+            new MimeKit.MimePart("image", "png") { Content = new MimeKit.MimeContent(new MemoryStream([1, 2, 3])), ContentLocation = new Uri("https://example.com/bg.png") },
+        };
+        var html = MailBackend.ToHtml(new MimeKit.MimeMessage { Body = page }, MailBackend.DataUri, page: true);
+        var embedded = Encoding.UTF8.GetString(Convert.FromBase64String(html.Split("data:text/css;base64,")[1].Split('"')[0]));
+        Assert.Contains("data:image/png;base64,AQID", embedded);
+    }
+
+    [Fact]
     public void Old_code_pages_are_read_as_what_they_are()
     {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);

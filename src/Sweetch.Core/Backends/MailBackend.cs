@@ -60,18 +60,20 @@ public static class MailBackend
         var html = message.HtmlBody;
         if (html is not null)
         {
-            // Stylesheets first: they can point at pictures too.
+            // Pictures and fonts first, then stylesheets, which may point at them in any order.
             var links = new Dictionary<string, string>();
-            foreach (var part in resources.Where(p => p.ContentType.MimeType != "text/html"))
+            void Link(MimePart part, string url)
             {
-                var url = part.ContentType.MimeType == "text/css" && part is TextPart css
-                    ? "data:text/css;base64," + Convert.ToBase64String(Encoding.UTF8.GetBytes(Replace(css.Text, links)))
-                    : source(part);
                 if (part.ContentId is { } id)
                     links["cid:" + id] = url;
                 if (part.ContentLocation is { } location)
                     links[location.OriginalString] = url;
             }
+            var styles = resources.Where(p => p.ContentType.MimeType == "text/css").OfType<TextPart>().ToList();
+            foreach (var part in resources.Where(p => p.ContentType.MimeType != "text/html" && !styles.Contains(p)))
+                Link(part, source(part));
+            foreach (var css in styles)
+                Link(css, "data:text/css;base64," + Convert.ToBase64String(Encoding.UTF8.GetBytes(Replace(css.Text, links))));
             html = Replace(html, links);
         }
         else
