@@ -101,6 +101,25 @@ public class IntegrationTests : IClassFixture<IntegrationTests.Samples>
             File.WriteAllText(Path.Combine(Dir, "kontakty.vcf"), "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Jan Novák\r\nTEL:+420 123\r\nEND:VCARD\r\n");
             Files["vcf"] = Path.Combine(Dir, "kontakty.vcf");
 
+            // A letter with an inline picture and an attachment, and a saved web page that pulls in a picture by URL.
+            var letter = new MimeKit.BodyBuilder { HtmlBody = "<p>Ahoj, <b>světe</b></p><img src=\"cid:logo\">" };
+            letter.LinkedResources.Add("logo.png", File.ReadAllBytes(png)).ContentId = "logo";
+            letter.Attachments.Add("tabulka.csv", File.ReadAllBytes(Files["csv"]));
+            var mail = new MimeKit.MimeMessage { Subject = "Pozdrav", Body = letter.ToMessageBody() };
+            mail.From.Add(new MimeKit.MailboxAddress("Jan", "jan@example.com"));
+            mail.To.Add(new MimeKit.MailboxAddress("Eva", "eva@example.com"));
+            Files["eml"] = Path.Combine(Dir, "dopis.eml");
+            mail.WriteTo(Files["eml"]);
+            var page = new MimeKit.Multipart("related")
+            {
+                new MimeKit.TextPart("html") { Text = "<html><body><h1>Stránka</h1><img src=\"https://example.com/a.png\"></body></html>" },
+                new MimeKit.MimePart("image", "png") { Content = new MimeKit.MimeContent(File.OpenRead(png)), ContentLocation = new Uri("https://example.com/a.png") },
+            };
+            Files["mht"] = Path.Combine(Dir, "stránka.mht");
+            new MimeKit.MimeMessage { Body = page }.WriteTo(Files["mht"]);
+            Files["msg"] = Path.Combine(Dir, "outlook.msg");
+            File.Copy(Path.Combine(AppContext.BaseDirectory, "Samples", "EmailWithAttachments.msg"), Files["msg"]);
+
             var folder = Path.Combine(Dir, "složka");
             Directory.CreateDirectory(Path.Combine(folder, "pod"));
             File.WriteAllText(Path.Combine(folder, "pod", "a.txt"), "a");
@@ -195,7 +214,7 @@ public class IntegrationTests : IClassFixture<IntegrationTests.Samples>
     public static TheoryData<string> SampleKeys() => new(
         "png", "jpg", "svg", "pdf", "md", "html", "txt", "xlsx", "csv", "srt", "folder", "zip", "tgz", "mp4", "avi", "wav", "mp3", "gif", "docx", "pptx",
         "psd", "tga", "jxl", "jp2", "exr", "qoi", "dds", "ppm", "subs", "m2ts", "wv", "ac3", "tex", "rst", "org", "ipynb",
-        "ass", "lrc", "json", "yaml", "toml", "xml", "vcf");
+        "ass", "lrc", "json", "yaml", "toml", "xml", "vcf", "eml", "mht", "msg");
 
     [Theory]
     [MemberData(nameof(SampleKeys))]

@@ -147,6 +147,18 @@ internal static class SelfTest
                 SaveWindow(scrolled, Path.Combine(outDir, "narrow-scroll.png"), scrolled.MinWidth, height: scrolled.MinHeight);
                 scrolled.Close();
             }
+            if (page == SettingsPage.Helpers)
+            {
+                // A program's formats opened, and a search for a format.
+                foreach (var (name, query) in new[] { ("expanded", ""), ("search", "pages") })
+                {
+                    var helpers = new SettingsWindow(settings, tools, () => { }) { Page = page };
+                    helpers.PreviewTools(query, ExternalTool.Ffmpeg);
+                    helpers.ExpandForPreview();
+                    SaveWindow(helpers, Path.Combine(outDir, $"settings-helpers-{name}.png"), 1000);
+                    helpers.Close();
+                }
+            }
             log.Add($"ok {Path.GetFileName(outDir)}/{file}");
         }
         var presetDialog = new PresetDialog(web);

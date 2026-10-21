@@ -538,8 +538,110 @@ internal sealed partial class SettingsWindow : Window
             }, glyph: Glyphs.Refresh),
             glyph: Glyphs.Extension));
         root.Children.Add(SectionHeader(T("Helper programs", "Вспомогательные программы")));
-        foreach (var tool in Enum.GetValues<ExternalTool>())
-            root.Children.Add(ToolCard(tool));
+
+        // Which program a format needs: the cards below narrow down while typing.
+        var search = TextField(_toolQuery, 40);
+        search.Background = System.Windows.Media.Brushes.Transparent; // the rounded border behind it gives the colour
+        var hint = Text(T("Find a format, e.g. mp4 or .docx", "Найти формат, например mp4 или .docx"), 14.5, brush: Theme.Muted);
+        hint.Margin = new Thickness(14, 0, 0, 0);
+        hint.VerticalAlignment = VerticalAlignment.Center;
+        hint.IsHitTestVisible = false;
+        var box = new Grid { Margin = new Thickness(0, 0, 0, 12) };
+        box.Children.Add(new Border { CornerRadius = new CornerRadius(12), Background = Theme.Track, Child = search, ClipToBounds = true });
+        box.Children.Add(hint);
+        root.Children.Add(box);
+        var list = new StackPanel();
+        root.Children.Add(list);
+        void Show()
+        {
+            hint.Visibility = search.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
+            list.Children.Clear();
+            var query = search.Text.Trim();
+            var format = query.Length == 0 ? null : ToolCoverage.Normalize(query);
+            var needed = format is null ? null : ToolCoverage.For(Coverage, format);
+            if (format is not null)
+            {
+                var known = Formats.All.Contains(format);
+                var answer = Text(needed!.Count > 0
+                    ? T($"{Formats.Display(format)} works with: {string.Join(", ", needed.Select(ToolLocator.DisplayName))}", $"С {Formats.Display(format)} работают: {string.Join(", ", needed.Select(ToolLocator.DisplayName))}")
+                    : known ? T($"{Formats.Display(format)} works without helper programs.", $"{Formats.Display(format)} работает без доп. программ.")
+                    : T($"Sweetch doesn't know {Formats.Display(format)} yet.", $"Sweetch пока не знает формат {Formats.Display(format)}."), 14.5, FontWeights.SemiBold);
+                answer.Margin = new Thickness(4, 0, 0, 12);
+                list.Children.Add(answer);
+            }
+            foreach (var tool in Enum.GetValues<ExternalTool>())
+            {
+                if (needed is null || needed.Contains(tool))
+                    list.Children.Add(ToolCard(tool, format));
+            }
+        }
+        search.TextChanged += (_, _) =>
+        {
+            _toolQuery = search.Text;
+            Show();
+        };
+        Show();
+    }
+
+    private string _toolQuery = "";
+    private readonly HashSet<ExternalTool> _expandedTools = [];
+
+    /// <summary>For the self-test screenshots: a search typed in and one program's list opened.</summary>
+    internal void PreviewTools(string query, ExternalTool expand)
+    {
+        _toolQuery = query;
+        _expandedTools.Add(expand);
+        Rebuild();
+    }
+
+    // Worked out once per language (labels are translated): every operation on every format, with each program present and absent.
+    private static readonly Dictionary<Language, IReadOnlyDictionary<ExternalTool, IReadOnlyList<ToolCoverage.Group>>> CoverageByLanguage = [];
+
+    private static IReadOnlyDictionary<ExternalTool, IReadOnlyList<ToolCoverage.Group>> Coverage =>
+        CoverageByLanguage.TryGetValue(Loc.Current, out var known) ? known
+            : CoverageByLanguage[Loc.Current] = ToolCoverage.Build(Sweetch.Core.Operations.Catalog.Build());
+
+    /// <summary>"Formats and features": per group of formats, what the program converts them to and which tools it adds.</summary>
+    private FrameworkElement ToolDetails(ExternalTool tool, string? format)
+    {
+        var expanded = format is not null || _expandedTools.Contains(tool);
+        var panel = new StackPanel { Margin = new Thickness(44, 12, 0, 0) };
+        var toggle = new TextBlock
+        {
+            Text = (expanded ? "▴ " : "▾ ") + T("Formats and features", "Форматы и функции"),
+            FontSize = 13.5,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = Theme.Muted,
+            Cursor = System.Windows.Input.Cursors.Hand,
+        };
+        toggle.MouseLeftButtonUp += (_, _) =>
+        {
+            if (!_expandedTools.Remove(tool))
+                _expandedTools.Add(tool);
+            Rebuild();
+        };
+        if (format is null)
+            panel.Children.Add(toggle);
+        if (!expanded)
+            return panel;
+        foreach (var group in Coverage[tool].Where(g => format is null || g.Formats.Contains(format)))
+        {
+            var formats = Text(string.Join(", ", group.Formats.Select(Formats.Display)), 14, FontWeights.Bold);
+            formats.Margin = new Thickness(0, 10, 0, 2);
+            formats.TextWrapping = TextWrapping.Wrap;
+            panel.Children.Add(formats);
+            void Line(string label, IReadOnlyList<string> items)
+            {
+                if (items.Count == 0)
+                    return;
+                var line = Text($"{label}: {string.Join(", ", items)}", 13.5, brush: Theme.Muted);
+                line.TextWrapping = TextWrapping.Wrap;
+                panel.Children.Add(line);
+            }
+            Line(T("Convert to", "Конвертация в"), group.Converts);
+            Line(T("Tools", "Инструменты"), group.Tools);
+        }
+        return panel;
     }
 
     // ------------------------------------------------------------------ helpers
@@ -608,7 +710,7 @@ internal sealed partial class SettingsWindow : Window
         }
     }
 
-    private Border ToolCard(ExternalTool tool)
+    private Border ToolCard(ExternalTool tool, string? format = null)
     {
         var path = _tools.Find(tool);
         var description = path ?? tool switch
@@ -655,6 +757,6 @@ internal sealed partial class SettingsWindow : Window
             ExternalTool.Pandoc => Glyphs.Document,
             _ => Glyphs.Table,
         };
-        return Card(ToolLocator.DisplayName(tool), description, right, glyph: glyph);
+        return Card(ToolLocator.DisplayName(tool), description, right, ToolDetails(tool, format), glyph: glyph);
     }
 }

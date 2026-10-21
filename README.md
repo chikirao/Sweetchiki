@@ -121,12 +121,16 @@
 | Изображения | JPG, PNG, WebP, AVIF, HEIC, TIFF, BMP, GIF, ICO, JPEG XL, JPEG 2000, PSD/PSB, TGA, QOI, DDS, PPM, PCX, OpenEXR, HDR, CUR, APNG, MNG, GIMP XCF, DICOM; RAW с камер (CR2/CR3, NEF, ARW, RAF, DNG, ORF, RW2 и др.); вектор SVG, SVGZ, EMF, WMF | JPG, PNG, WebP, AVIF, JPEG XL, TIFF, BMP, GIF, ICO, PDF |
 | Видео | MP4, MOV, MKV, WebM, AVI, WMV, FLV, MPEG, TS/MTS, M2TS, 3GP, OGV, VOB, MXF, DivX, ASF, RM, F4V | MP4 (H.264 и HEVC), MOV, MKV, WebM, GIF, MP3, M4A; субтитры из видео в SRT |
 | Аудио | MP3, M4A, AAC, WAV, FLAC, OGG, Opus, AIFF, WMA, AMR, APE, WavPack, TTA, DSD (DSF/DFF), DTS, AC3, E-AC3, MKA, CAF, AU, VOC, W64 | MP3, M4A, WAV, FLAC, OGG, Opus, AIFF |
-| Документы | DOCX, DOC, ODT, RTF, Markdown, HTML, TXT, EPUB, LaTeX, reStructuredText, Org, AsciiDoc, Typst, Jupyter, FB2, Textile, MediaWiki, DocBook, OPML, Djot | DOCX, PDF, ODT, Markdown, HTML, TXT, EPUB, RTF |
+| Документы | DOCX, DOC, ODT, RTF, Markdown, HTML, TXT, EPUB, DOCM, DOTX, WPS, WPD, Apple Pages, FODT, OTT, LaTeX, reStructuredText, Org, AsciiDoc, Typst, Jupyter, FB2, Textile, MediaWiki, DocBook, OPML, Djot | DOCX, PDF, ODT, Markdown, HTML, TXT, EPUB, RTF |
 | Субтитры | SRT, VTT, ASS/SSA, LRC, SAMI, TTML/DFXP, MicroDVD; любая кодировка (Windows-1251 и др.) | SRT, VTT, ASS, LRC, TXT (только текст или с таймкодами); всё в UTF-8 |
 | Данные | JSON, JSON Lines, YAML, TOML, XML; контакты vCard (VCF) | друг в друга; CSV и XLSX из списков записей; таблица → JSON или VCF |
-| PDF, таблицы, презентации, архивы | PDF; XLSX, XLS, ODS, CSV, TSV; PPTX, PPT, ODP; ZIP, 7Z, RAR, TAR и сжатые TAR | изображения, текст, DOCX, PPTX; XLSX, CSV, TSV, ODS, PDF; PDF и картинки слайдов; ZIP, TAR, TAR.GZ |
+| PDF | PDF | JPG, PNG, многостраничный TIFF, CBZ, TXT, Markdown, DOCX, PPTX; объединить, разделить, выбрать страницы (1-3, 5, 8-) |
+| Таблицы | XLSX, XLS, ODS, CSV, TSV, шаблоны XLT/XLTX/OTS, FODS, Apple Numbers, ET | XLSX, CSV, TSV, ODS, PDF, HTML, JSON, VCF |
+| Презентации | PPTX, PPT, ODP, PPTM, POTX, PPSX, OTP, FODP, Apple Keynote | PDF, PNG, JPG, PPTX, ODP, DOCX (слайд на страницу) |
+| Письма и страницы | EML, Outlook MSG, MHTML | HTML, PDF, EML; вложения — в папку |
+| Архивы | ZIP, 7Z, RAR, TAR и сжатые TAR | ZIP, TAR, TAR.GZ |
 
-Доступные операции зависят от типа файла. [План добавления остальных форматов](docs/FORMATS-ROADMAP.md).
+Доступные операции зависят от типа файла. Какая доп. программа нужна для формата, видно в настройках: «Доп. программы» → поиск по формату. [План добавления остальных форматов](docs/FORMATS-ROADMAP.md).
 
 Pandoc для документов и разметки и FFmpeg для аудио и видео скачиваются при первой конвертации, которой они нужны, с проверкой SHA-256. LibreOffice для части операций Office/PDF устанавливается отдельно. Пока чего-то не хватает, настройки напоминают об этом плашкой с переходом в «Доп. программы». Обработка файлов локальная.
 

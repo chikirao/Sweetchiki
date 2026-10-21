@@ -20,6 +20,7 @@ public static class Catalog
         AddSpreadsheets(ops);
         AddSubtitles(ops);
         AddData(ops);
+        AddMail(ops);
         AddArchives(ops);
         return ops;
     }
@@ -207,6 +208,11 @@ public static class Catalog
             ops.Add(new PerFileOperation($"pdf.to.{text}", WheelKind.Convert, Formats.Display(text), Glyphs.Text, Formats.Pdf,
                 async (item, ctx, _) => [await PdfBackend.ToTextAsync(item, text, ctx)], subtitle: text == "md" ? "Markdown" : "text"));
         }
+        foreach (var bundle in new[] { "tiff", "cbz" })
+        {
+            ops.Add(new PerFileOperation($"pdf.to.{bundle}", WheelKind.Convert, Formats.Display(bundle), Glyphs.Library, Formats.Pdf,
+                async (item, ctx, p) => [await PdfBackend.ToBundleAsync(item, bundle, ctx, p)], subtitle: bundle == "cbz" ? T("comic book", "комикс") : T("all pages", "все страницы")));
+        }
         ops.Add(PdfDoc("html", "web"));
         ops.Add(PdfDoc("epub", T("e-book", "электронная книга")));
 
@@ -219,6 +225,16 @@ public static class Catalog
             }));
         ops.Add(new PerFileOperation("pdf.split", WheelKind.Tools, T("Split", "Разделить"), Glyphs.Split, Formats.Pdf,
             (item, ctx, p) => PdfBackend.SplitAsync(item, ctx, p), subtitle: T("into pages", "на страницы")));
+        ops.Add(new PerFileOperation("pdf.pages", WheelKind.Tools, T("Pages", "Страницы"), Glyphs.Page, Formats.Pdf,
+            async (item, ctx, _) =>
+            {
+                var pages = ctx.Param("pages");
+                return [await OutputPaths.ProduceAsync(ctx.OutputDirFor(item.Path), $"{item.BaseName} ({T("pages", "стр.")} {pages.Replace(" ", "")})", "pdf",
+                    tmp => Task.Run(() => PdfBackend.ExtractPages(item.Path, tmp, pages), ctx.CancellationToken))];
+            }, subtitle: T("pick some", "выбрать"))
+        {
+            Parameters = [new ParameterSpec("pages", T("Pages", "Страницы"), "1", T("e.g. 1-3, 5, 8-", "например, 1-3, 5, 8-"))],
+        });
         ops.Add(new PerFileOperation("pdf.rotate", WheelKind.Tools, T("Rotate", "Повернуть"), Glyphs.Rotate, Formats.Pdf,
             async (item, ctx, _) => [await OutputPaths.ProduceAsync(ctx.OutputDirFor(item.Path), $"{item.BaseName} ({T("rotated", "повёрнуто")})", "pdf",
                 tmp => Task.Run(() => PdfBackend.Rotate(item.Path, tmp, 90), ctx.CancellationToken))], subtitle: T("right", "вправо")));
@@ -253,7 +269,7 @@ public static class Catalog
     {
         var pandoc = tools.Has(ExternalTool.Pandoc);
         var office = tools.Has(ExternalTool.LibreOffice);
-        bool pandocReads = Formats.PandocInputs.Contains(input), officeReads = input is "doc" or "docx" or "odt" or "rtf" or "txt" or "html";
+        bool pandocReads = Formats.PandocInputs.Contains(input), officeReads = Formats.OfficeDocuments.Contains(input);
         bool pandocWrites = target != "pdf", officeWrites = target is "pdf" or "docx" or "odt" or "txt" or "html" || (target == "rtf" && input != "html");
 
         // LibreOffice keeps layout better between word-processor formats; pandoc is better at everything else.
@@ -334,9 +350,11 @@ public static class Catalog
                             OutputPaths.TryDelete(Path.GetDirectoryName(pdf)!);
                         }
                     }
+                    if (target == "docx")
+                        return [await SlidesToDocxAsync(item, ctx)];
                     return [await OfficeBackend.ConvertAsync(item, target, ctx)];
-                }, targetFormat: target, subtitle: target is "png" or "jpg" ? T("all slides", "все слайды") : null)
-            { Requires = [ExternalTool.LibreOffice] });
+                }, targetFormat: target, subtitle: target switch { "png" or "jpg" => T("all slides", "все слайды"), "docx" => T("a slide per page", "слайд на страницу"), _ => null })
+            { Requires = target == "docx" ? [ExternalTool.LibreOffice, ExternalTool.Pandoc] : [ExternalTool.LibreOffice] });
         }
     }
 
@@ -396,6 +414,39 @@ public static class Catalog
             async (item, ctx, _) => [await DataBackend.FromTableAsync(item, "json", ctx)], subtitle: T("records", "записи")));
         ops.Add(new PerFileOperation("sheet.to.vcf", WheelKind.Convert, "VCF", Glyphs.Person, readable,
             async (item, ctx, _) => [await DataBackend.FromTableAsync(item, "vcf", ctx)], subtitle: T("contacts", "контакты")));
+    }
+
+    // ---------------------------------------------------------------- mail and saved pages
+
+    private static void AddMail(List<Operation> ops)
+    {
+        ops.Add(new PerFileOperation("mail.to.html", WheelKind.Convert, "HTML", Glyphs.Document, Formats.Mail,
+            async (item, ctx, _) => [await MailBackend.ToHtmlAsync(item, ctx)], subtitle: T("one page", "одна страница")));
+        ops.Add(new PerFileOperation("mail.to.pdf", WheelKind.Convert, "PDF", Glyphs.Document, Formats.Mail,
+            async (item, ctx, _) => [await MailBackend.ToPdfAsync(item, ctx)])
+        { Requires = [ExternalTool.LibreOffice] });
+        ops.Add(new PerFileOperation("msg.to.eml", WheelKind.Convert, "EML", Glyphs.Send, ["msg"],
+            async (item, ctx, _) => [await MailBackend.ToEmlAsync(item, ctx)], subtitle: T("any mail app", "любая почта")));
+        ops.Add(new PerFileOperation("mail.attachments", WheelKind.Tools, T("Attachments", "Вложения"), Glyphs.Extract, ["eml", "msg"],
+            async (item, ctx, _) => [await MailBackend.SaveAttachmentsAsync(item, ctx)], subtitle: T("save all", "сохранить все")));
+    }
+
+    /// <summary>Slides to Word: each slide drawn as a picture on its own page (LibreOffice draws, pandoc builds the DOCX).</summary>
+    private static async Task<string> SlidesToDocxAsync(FileItem item, OperationContext ctx)
+    {
+        var pdf = await OfficeBackend.ConvertToTempAsync(ctx, item.Path, "pdf");
+        var temp = Path.GetDirectoryName(pdf)!;
+        try
+        {
+            var pages = await Task.Run(() => PdfBackend.RenderPagesToPng(pdf, temp, 150, ctx.CancellationToken), ctx.CancellationToken);
+            var md = Path.Combine(temp, item.BaseName + ".md");
+            await File.WriteAllTextAsync(md, string.Join("\n\n\\newpage\n\n", pages.Select(p => $"![]({Path.GetFileName(p)}){{width=100%}}")), ctx.CancellationToken);
+            return await OutputPaths.ProduceAsync(ctx.OutputDirFor(item.Path), item.BaseName, "docx", tmp => PandocBackend.ConvertAsync(ctx, md, "md", tmp, "docx"));
+        }
+        finally
+        {
+            OutputPaths.TryDelete(temp);
+        }
     }
 
     // ---------------------------------------------------------------- archives

@@ -85,6 +85,44 @@ public class DataAndSubtitleTests
     }
 
     [Fact]
+    public void Each_helper_program_owns_its_formats()
+    {
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        var coverage = ToolCoverage.Build(Sweetch.Core.Operations.Catalog.Build());
+        Assert.True(watch.ElapsedMilliseconds < 2000, $"{watch.ElapsedMilliseconds} ms");
+        Assert.Empty(ToolCoverage.For(coverage, "png"));
+        Assert.Equal([ExternalTool.Ffmpeg], ToolCoverage.For(coverage, ".MP4"));
+        // TEX → PDF goes through both: pandoc writes a DOCX, LibreOffice prints it.
+        Assert.Equal([ExternalTool.Pandoc, ExternalTool.LibreOffice], ToolCoverage.For(coverage, "notes.tex"));
+        Assert.Contains(ExternalTool.LibreOffice, ToolCoverage.For(coverage, "pages"));
+        // A tool on the wheel, not only conversions: "Compress" for video comes with FFmpeg.
+        Assert.Contains(coverage[ExternalTool.Ffmpeg], g => g.Formats.Contains("mkv") && g.Tools.Count > 0);
+    }
+
+    [Fact]
+    public void Page_ranges_read_like_a_print_dialog()
+    {
+        Assert.Equal([0, 1, 2, 4, 7, 8, 9], PdfBackend.ParsePages("1-3, 5; 8-", 10));
+        Assert.Equal([0, 1], PdfBackend.ParsePages("-2", 10));
+        Assert.Equal([3], PdfBackend.ParsePages(" 4 ", 10));
+        Assert.Throws<ConversionException>(() => PdfBackend.ParsePages("9-12", 10));
+        Assert.Throws<ConversionException>(() => PdfBackend.ParsePages("abc", 10));
+    }
+
+    [Fact]
+    public void Letters_become_a_page_with_their_pictures()
+    {
+        var body = new MimeKit.BodyBuilder { HtmlBody = "<img src=\"cid:a\">" };
+        body.LinkedResources.Add("a.png", [1, 2, 3]).ContentId = "a";
+        var mail = new MimeKit.MimeMessage { Subject = "Тема", Body = body.ToMessageBody() };
+        mail.From.Add(new MimeKit.MailboxAddress("Аня", "a@example.com"));
+        var html = MailBackend.ToHtml(mail, MailBackend.DataUri);
+        Assert.Contains("src=\"data:image/png;base64,AQID\"", html);
+        Assert.Contains("Аня", html);
+        Assert.Contains("<title>Тема</title>", html);
+    }
+
+    [Fact]
     public void Contacts_go_to_a_table_and_back()
     {
         var vcf = "BEGIN:VCARD\r\nVERSION:2.1\r\nN;CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:=D0=98=D0=B2=D0=B0=D0=BD=D0=BE=D0=B2;=D0=98=D0=B2=D0=B0=\r\n=D0=BD\r\n"

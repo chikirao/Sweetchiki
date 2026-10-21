@@ -13,6 +13,8 @@ Sweetch uses MIT-licensed code (copyright notices are preserved in [LICENSE](LIC
 | [SharpCompress](https://github.com/adamhathcock/sharpcompress) | RAR, 7z, TAR… | MIT |
 | [YamlDotNet](https://github.com/aaubry/YamlDotNet) | YAML | MIT |
 | [Tomlyn](https://github.com/xoofx/Tomlyn) | TOML | BSD-2-Clause |
+| [MimeKitLite](https://github.com/jstedfast/MimeKit) | EML, MHTML | MIT |
+| [MSGReader](https://github.com/Sicos1977/MSGReader) (with OpenMcdf, RtfPipe, Microsoft.Maui.Graphics) | Outlook MSG | MIT (OpenMcdf: MPL-2.0) |
 | [FFmpeg](https://ffmpeg.org) (Windows: downloaded on demand, “essentials” build by [gyan.dev](https://www.gyan.dev/ffmpeg/builds/)) | Audio and video | GPL-3.0 – source: https://github.com/FFmpeg/FFmpeg |
 | [Pandoc 3.12.1](https://pandoc.org) (Windows: downloaded on demand, official release) | Documents | GPL-2.0-or-later – source: https://github.com/jgm/pandoc/tree/3.12.1 |
 | [LibreOffice](https://www.libreoffice.org) (optional, installed separately) | Office files → PDF | MPL-2.0 |

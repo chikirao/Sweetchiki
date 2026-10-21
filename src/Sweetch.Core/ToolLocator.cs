@@ -10,6 +10,7 @@ public sealed class ToolLocator
     private readonly Dictionary<ExternalTool, string?> _cache;
     private readonly string _appDir;
     private readonly HashSet<ExternalTool> _assumed = [];
+    private bool _onlyAssumed;
 
     /// <summary>Where the Windows app downloads FFmpeg and Pandoc when they are needed.</summary>
     public static string DownloadFolder => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Sweetch", "tools");
@@ -18,6 +19,14 @@ public sealed class ToolLocator
     public ToolLocator Assuming(IEnumerable<ExternalTool> tools)
     {
         var view = new ToolLocator(_appDir, _cache);
+        view._assumed.UnionWith(tools);
+        return view;
+    }
+
+    /// <summary>A view where exactly <paramref name="tools"/> exist, installed or not: "what does LibreOffice add?"</summary>
+    public static ToolLocator Pretending(IEnumerable<ExternalTool> tools)
+    {
+        var view = new ToolLocator(AppContext.BaseDirectory, []) { _onlyAssumed = true };
         view._assumed.UnionWith(tools);
         return view;
     }
@@ -67,6 +76,8 @@ public sealed class ToolLocator
 
     public string? Find(ExternalTool tool)
     {
+        if (_onlyAssumed)
+            return _assumed.Contains(tool) ? "(assumed)" : null;
         lock (_cache)
         {
             if (!_cache.TryGetValue(tool, out var path))
