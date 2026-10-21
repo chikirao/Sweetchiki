@@ -19,6 +19,7 @@ public static class Catalog
         AddSlides(ops);
         AddSpreadsheets(ops);
         AddSubtitles(ops);
+        AddData(ops);
         AddArchives(ops);
         return ops;
     }
@@ -134,8 +135,13 @@ public static class Catalog
             outputFormat: _ => "mp4", subtitle: "2×");
         Ffmpeg(ops, "video.thumbnail", T("Thumbnail", "Миниатюра"), Glyphs.Camera, Formats.Video, T("thumbnail", "миниатюра"),
             (item, ctx) => ["-vf", "thumbnail=150", "-frames:v", "1", "-update", "1"], outputFormat: _ => "png", subtitle: T("PNG frame", "кадр PNG"));
-        Ffmpeg(ops, "video.subtitles", T("Subtitles", "Субтитры"), Glyphs.Subtitles, Formats.Video, T("subtitles", "субтитры"),
-            (item, ctx) => ["-map", "0:s:0", "-c:s", "srt"], outputFormat: _ => "srt", subtitle: T("to SRT", "в SRT"));
+        // The SRT for players, and a text with a time on every line for reading or quoting.
+        ops.Add(new PerFileOperation("video.subtitles", WheelKind.Tools, T("Subtitles", "Субтитры"), Glyphs.Subtitles, Formats.Video, async (item, ctx, p) =>
+        {
+            var srt = await FfmpegBackend.TransformAsync(item, T("subtitles", "субтитры"), ctx, p, ["-map", "0:s:0", "-c:s", "srt"], "srt");
+            return [srt, await SubtitleBackend.ConvertAsync(new FileItem(srt), "timed", new OperationContextOverride(ctx, Path.GetDirectoryName(srt)!).Context, Formats.BaseNameOf(srt))];
+        }, subtitle: T("SRT and TXT", "SRT и TXT"))
+        { Requires = [ExternalTool.Ffmpeg] });
     }
 
     private static string[] H264(int crf, string preset, string? filter, string? audioBitrate)
@@ -359,10 +365,37 @@ public static class Catalog
     {
         foreach (var target in Formats.SubtitleOutputs)
         {
-            ops.Add(new PerFileOperation($"subs.to.{target}", WheelKind.Convert, Formats.Display(target), Glyphs.Subtitles, Formats.Subtitles,
+            ops.Add(new PerFileOperation($"subs.to.{target}", WheelKind.Convert, target == "timed" ? T("TXT + time", "TXT + время") : Formats.Display(target),
+                target is "txt" or "timed" ? Glyphs.Text : Glyphs.Subtitles, Formats.Subtitles,
                 async (item, ctx, _) => [await SubtitleBackend.ConvertAsync(item, target, ctx)], targetFormat: target,
-                subtitle: target == "txt" ? T("text only", "только текст") : null));
+                subtitle: target switch { "txt" => T("text only", "только текст"), "timed" => T("with timestamps", "с таймкодами"), "lrc" => T("lyrics", "текст песни"), _ => null }));
         }
+        ops.Add(new PerFileOperation("subs.utf8", WheelKind.Tools, "UTF-8", Glyphs.Text, Formats.Subtitles,
+            async (item, ctx, _) => [await SubtitleBackend.ToUtf8Async(item, ctx)], subtitle: T("fix encoding", "исправить кодировку")));
+    }
+
+    // ---------------------------------------------------------------- data
+
+    private static void AddData(List<Operation> ops)
+    {
+        foreach (var target in Formats.DataOutputs)
+        {
+            var table = target is "csv" or "xlsx";
+            ops.Add(new PerFileOperation($"data.to.{target}", WheelKind.Convert, Formats.Display(target), table ? Glyphs.Table : Glyphs.Text, Formats.Data,
+                async (item, ctx, _) => [table ? await DataBackend.ToTableAsync(item, target, ctx) : await DataBackend.ConvertAsync(item, target, ctx)],
+                targetFormat: target, subtitle: table ? T("table", "таблица") : null));
+        }
+        foreach (var target in new[] { "csv", "xlsx" })
+        {
+            ops.Add(new PerFileOperation($"vcf.to.{target}", WheelKind.Convert, Formats.Display(target), Glyphs.Table, ["vcf"],
+                async (item, ctx, _) => [await DataBackend.ToTableAsync(item, target, ctx)], subtitle: T("contacts", "контакты")));
+        }
+        // Spreadsheets as records or contacts. ODS would need LibreOffice to read, so only what we read ourselves.
+        string[] readable = ["xlsx", "xlsm", "xls", "csv", "tsv"];
+        ops.Add(new PerFileOperation("sheet.to.json", WheelKind.Convert, "JSON", Glyphs.Text, readable,
+            async (item, ctx, _) => [await DataBackend.FromTableAsync(item, "json", ctx)], subtitle: T("records", "записи")));
+        ops.Add(new PerFileOperation("sheet.to.vcf", WheelKind.Convert, "VCF", Glyphs.Person, readable,
+            async (item, ctx, _) => [await DataBackend.FromTableAsync(item, "vcf", ctx)], subtitle: T("contacts", "контакты")));
     }
 
     // ---------------------------------------------------------------- archives

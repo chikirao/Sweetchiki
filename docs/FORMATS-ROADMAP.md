@@ -37,13 +37,16 @@ Pandoc уже скачивается по требованию; добавляе
 - ⬜ Markdown → слайды PPTX (pandoc умеет писать pptx)
 - ⬜ Выходы: LaTeX, rST, Typst, AsciiDoc — на вторую сторону
 
-## Этап 4. Данные и субтитры (свой код, без движков) ⬜
+## Этап 4. Данные и субтитры (свой код, без движков) ✅
 
-- ⬜ JSON ↔ YAML ↔ TOML ↔ XML ↔ JSON Lines (System.Text.Json + YamlDotNet + Tomlyn)
-- ⬜ Табличный JSON ↔ CSV / XLSX (через существующий SpreadsheetBackend)
-- ⬜ vCard ↔ CSV
-- ⬜ Субтитры: ASS/SSA, SAMI (SMI), LRC, TTML, MicroDVD (SUB), SCC — свой парсер в SubtitleBackend
-- ⬜ Починка кодировки субтитров: CP1251 / CP949 → UTF-8 (автоопределение)
+- ✅ JSON ↔ YAML ↔ TOML ↔ XML ↔ JSON Lines (System.Text.Json + YamlDotNet + Tomlyn)
+- ✅ Списки записей → CSV / XLSX (вложенные поля — колонки через точку), таблица → JSON
+- ✅ vCard ↔ CSV / XLSX (в том числе quoted-printable из старых Android, колонки Google и на русском)
+- ✅ Субтитры: ASS/SSA, SAMI (SMI), LRC, TTML/DFXP, MicroDVD (SUB) → SRT, VTT, ASS, LRC, TXT
+- ✅ TXT с таймкодами («[00:01:02] текст»); «Субтитры» из видео дают SRT и такой TXT
+- ⬜ SCC (CEA-608, байтовые коды) — редкий, отложен
+- ✅ Любая кодировка на входе (UTF-8/16, Windows-1251, 1252), всегда UTF-8 на выходе; инструмент «UTF-8» на колесе Ctrl
+- ⬜ CP949 (корейский) — по запросу
 
 ## Этап 5. Документы, таблицы, презентации — больше входов ⬜
 

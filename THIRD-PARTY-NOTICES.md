@@ -11,6 +11,8 @@ Sweetch uses MIT-licensed code (copyright notices are preserved in [LICENSE](LIC
 | [ClosedXML](https://github.com/ClosedXML/ClosedXML) | XLSX | MIT |
 | [ExcelDataReader](https://github.com/ExcelDataReader/ExcelDataReader) | XLS | MIT |
 | [SharpCompress](https://github.com/adamhathcock/sharpcompress) | RAR, 7z, TAR… | MIT |
+| [YamlDotNet](https://github.com/aaubry/YamlDotNet) | YAML | MIT |
+| [Tomlyn](https://github.com/xoofx/Tomlyn) | TOML | BSD-2-Clause |
 | [FFmpeg](https://ffmpeg.org) (Windows: downloaded on demand, “essentials” build by [gyan.dev](https://www.gyan.dev/ffmpeg/builds/)) | Audio and video | GPL-3.0 – source: https://github.com/FFmpeg/FFmpeg |
 | [Pandoc 3.12.1](https://pandoc.org) (Windows: downloaded on demand, official release) | Documents | GPL-2.0-or-later – source: https://github.com/jgm/pandoc/tree/3.12.1 |
 | [LibreOffice](https://www.libreoffice.org) (optional, installed separately) | Office files → PDF | MPL-2.0 |

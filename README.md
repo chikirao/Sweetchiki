@@ -122,7 +122,9 @@
 | Видео | MP4, MOV, MKV, WebM, AVI, WMV, FLV, MPEG, TS/MTS, M2TS, 3GP, OGV, VOB, MXF, DivX, ASF, RM, F4V | MP4 (H.264 и HEVC), MOV, MKV, WebM, GIF, MP3, M4A; субтитры из видео в SRT |
 | Аудио | MP3, M4A, AAC, WAV, FLAC, OGG, Opus, AIFF, WMA, AMR, APE, WavPack, TTA, DSD (DSF/DFF), DTS, AC3, E-AC3, MKA, CAF, AU, VOC, W64 | MP3, M4A, WAV, FLAC, OGG, Opus, AIFF |
 | Документы | DOCX, DOC, ODT, RTF, Markdown, HTML, TXT, EPUB, LaTeX, reStructuredText, Org, AsciiDoc, Typst, Jupyter, FB2, Textile, MediaWiki, DocBook, OPML, Djot | DOCX, PDF, ODT, Markdown, HTML, TXT, EPUB, RTF |
-| PDF, таблицы, презентации, субтитры, архивы | PDF; XLSX, XLS, ODS, CSV, TSV; PPTX, PPT, ODP; SRT, VTT; ZIP, 7Z, RAR, TAR и сжатые TAR | изображения, текст, DOCX, PPTX; XLSX, CSV, TSV, ODS, PDF; PDF и картинки слайдов; SRT, VTT, TXT; ZIP, TAR, TAR.GZ |
+| Субтитры | SRT, VTT, ASS/SSA, LRC, SAMI, TTML/DFXP, MicroDVD; любая кодировка (Windows-1251 и др.) | SRT, VTT, ASS, LRC, TXT (только текст или с таймкодами); всё в UTF-8 |
+| Данные | JSON, JSON Lines, YAML, TOML, XML; контакты vCard (VCF) | друг в друга; CSV и XLSX из списков записей; таблица → JSON или VCF |
+| PDF, таблицы, презентации, архивы | PDF; XLSX, XLS, ODS, CSV, TSV; PPTX, PPT, ODP; ZIP, 7Z, RAR, TAR и сжатые TAR | изображения, текст, DOCX, PPTX; XLSX, CSV, TSV, ODS, PDF; PDF и картинки слайдов; ZIP, TAR, TAR.GZ |
 
 Доступные операции зависят от типа файла. [План добавления остальных форматов](docs/FORMATS-ROADMAP.md).
 

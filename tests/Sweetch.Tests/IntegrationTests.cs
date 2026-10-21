@@ -85,6 +85,21 @@ public class IntegrationTests : IClassFixture<IntegrationTests.Samples>
 
             File.WriteAllText(Path.Combine(Dir, "titulky.srt"), "1\n00:00:01,000 --> 00:00:02,000\nAhoj\n");
             Files["srt"] = Path.Combine(Dir, "titulky.srt");
+            File.WriteAllText(Path.Combine(Dir, "anime.ass"), SubtitleBackend.ToAss(SubtitleBackend.Parse(File.ReadAllText(Files["srt"]))));
+            Files["ass"] = Path.Combine(Dir, "anime.ass");
+            File.WriteAllText(Path.Combine(Dir, "píseň.lrc"), "[ar:Kapela]\n[00:01.00]První řádek\n[00:03.20]Druhý\n");
+            Files["lrc"] = Path.Combine(Dir, "píseň.lrc");
+
+            File.WriteAllText(Path.Combine(Dir, "nastavení.json"), """{"name":"Sweetch","items":[{"id":1,"title":"Žluťák"},{"id":2,"title":"Kůň","tags":["a","b"]}]}""");
+            Files["json"] = Path.Combine(Dir, "nastavení.json");
+            File.WriteAllText(Path.Combine(Dir, "config.yaml"), "name: Sweetch\nversion: 2\nlist:\n  - a\n  - b\n");
+            Files["yaml"] = Path.Combine(Dir, "config.yaml");
+            File.WriteAllText(Path.Combine(Dir, "cargo.toml"), "[package]\nname = \"sweetch\"\nversion = \"2.0\"\n\n[[bin]]\nname = \"a\"\n");
+            Files["toml"] = Path.Combine(Dir, "cargo.toml");
+            File.WriteAllText(Path.Combine(Dir, "feed.xml"), "<feed lang=\"cs\"><entry><title>Ahoj</title></entry><entry><title>Svět</title></entry></feed>");
+            Files["xml"] = Path.Combine(Dir, "feed.xml");
+            File.WriteAllText(Path.Combine(Dir, "kontakty.vcf"), "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Jan Novák\r\nTEL:+420 123\r\nEND:VCARD\r\n");
+            Files["vcf"] = Path.Combine(Dir, "kontakty.vcf");
 
             var folder = Path.Combine(Dir, "složka");
             Directory.CreateDirectory(Path.Combine(folder, "pod"));
@@ -179,7 +194,8 @@ public class IntegrationTests : IClassFixture<IntegrationTests.Samples>
 
     public static TheoryData<string> SampleKeys() => new(
         "png", "jpg", "svg", "pdf", "md", "html", "txt", "xlsx", "csv", "srt", "folder", "zip", "tgz", "mp4", "avi", "wav", "mp3", "gif", "docx", "pptx",
-        "psd", "tga", "jxl", "jp2", "exr", "qoi", "dds", "ppm", "subs", "m2ts", "wv", "ac3", "tex", "rst", "org", "ipynb");
+        "psd", "tga", "jxl", "jp2", "exr", "qoi", "dds", "ppm", "subs", "m2ts", "wv", "ac3", "tex", "rst", "org", "ipynb",
+        "ass", "lrc", "json", "yaml", "toml", "xml", "vcf");
 
     [Theory]
     [MemberData(nameof(SampleKeys))]
@@ -217,6 +233,10 @@ public class IntegrationTests : IClassFixture<IntegrationTests.Samples>
                 catch (ConversionException ex) when (key is "pdf" && !_s.PdfHasText && ex.Message.Contains("contains no text"))
                 {
                     output.WriteLine($"ok   {op.Id} (expected: image-only PDF has no text)");
+                }
+                catch (ConversionException ex) when (op.Id == "sheet.to.vcf" && ex.Message.Contains("no name, phone or email"))
+                {
+                    output.WriteLine($"ok   {op.Id} (expected: not a contact list)");
                 }
                 catch (ConversionException ex) when (op.Id == "video.subtitles" && key != "subs" && ex.Message.Contains("no text subtitles"))
                 {

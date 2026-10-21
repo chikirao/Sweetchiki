@@ -17,6 +17,8 @@
     <PackageReference Include="PDFtoImage" Version="5.2.0" />
     <PackageReference Include="SharpCompress" Version="0.50.5" />
     <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
+    <PackageReference Include="Tomlyn" Version="2.10.1" />
+    <PackageReference Include="YamlDotNet" Version="18.1.0" />
   </ItemGroup>
 
 </Project>

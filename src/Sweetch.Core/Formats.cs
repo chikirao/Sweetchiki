@@ -29,6 +29,11 @@ public static class Formats
         ["asciidoc"] = "adoc",
         ["mediawiki"] = "wiki",
         ["dbk"] = "docbook",
+        ["sami"] = "smi",
+        ["dfxp"] = "ttml",
+        ["yml"] = "yaml",
+        ["ndjson"] = "jsonl",
+        ["vcard"] = "vcf",
     };
 
     private static readonly string[] DoubleExtensions = [".tar.gz", ".tar.bz2", ".tar.xz"];
@@ -69,8 +74,12 @@ public static class Formats
     public static readonly HashSet<string> Spreadsheets = Set("xlsx", "xlsm", "xls", "ods", "csv", "tsv");
     public static readonly string[] SpreadsheetOutputs = ["xlsx", "csv", "tsv", "ods", "pdf"];
 
-    public static readonly HashSet<string> Subtitles = Set("srt", "vtt");
-    public static readonly string[] SubtitleOutputs = ["srt", "vtt", "txt"];
+    public static readonly HashSet<string> Subtitles = Set("srt", "vtt", "ass", "ssa", "lrc", "smi", "ttml", "sub");
+    /// <summary>"timed" is a .txt with a start time on every line.</summary>
+    public static readonly string[] SubtitleOutputs = ["srt", "vtt", "ass", "lrc", "txt", "timed"];
+
+    public static readonly HashSet<string> Data = Set("json", "jsonl", "yaml", "toml", "xml");
+    public static readonly string[] DataOutputs = ["json", "yaml", "toml", "xml", "jsonl", "csv", "xlsx"];
 
     public static readonly HashSet<string> Archives = Set("zip", "tar", "tar.gz", "gz", "tar.bz2", "bz2", "tar.xz", "xz", "rar", "7z");
     public static readonly string[] ArchiveOutputs = ["zip", "tar", "tar.gz"];
