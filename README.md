@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/hero-dark.png" />
-    <img src="docs/hero-light.png" width="100%" alt="Sweetch 2.0: колёса конвертации, инструментов и действий" />
+    <img src="docs/hero-light.png" width="100%" alt="Sweetch 2.1: колёса конвертации, инструментов и действий" />
   </picture>
 </p>
 
@@ -20,8 +20,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/chikirao/Sweetchiki/releases/download/v2.0/Sweetch-2.0-Setup-win-x64.exe"><img src="https://img.shields.io/badge/%D0%A1%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-%D1%83%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D1%89%D0%B8%D0%BA%20EXE-FF6B3D?style=for-the-badge&logo=windows&logoColor=white&labelColor=0F0F0E" alt="Скачать установщик EXE" /></a>
-  <a href="https://github.com/chikirao/Sweetchiki/releases/download/v2.0/Sweetch-2.0-win-x64.zip"><img src="https://img.shields.io/badge/%D0%B8%D0%BB%D0%B8-%D0%B0%D1%80%D1%85%D0%B8%D0%B2%20ZIP-555550?style=for-the-badge&labelColor=0F0F0E" alt="Скачать архив ZIP" /></a>
+  <a href="https://github.com/chikirao/Sweetchiki/releases/download/v2.1/Sweetch-2.1-Setup-win-x64.exe"><img src="https://img.shields.io/badge/%D0%A1%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-%D1%83%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D1%89%D0%B8%D0%BA%20EXE-FF6B3D?style=for-the-badge&logo=windows&logoColor=white&labelColor=0F0F0E" alt="Скачать установщик EXE" /></a>
+  <a href="https://github.com/chikirao/Sweetchiki/releases/download/v2.1/Sweetch-2.1-win-x64.zip"><img src="https://img.shields.io/badge/%D0%B8%D0%BB%D0%B8-%D0%B0%D1%80%D1%85%D0%B8%D0%B2%20ZIP-555550?style=for-the-badge&labelColor=0F0F0E" alt="Скачать архив ZIP" /></a>
 </p>
 
 <p align="center">
@@ -55,6 +55,17 @@
 </table>
 
 Отпустите файл в центре колеса — отмена. Без мыши: выберите файлы в Проводнике и нажмите <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>Space</kbd>. Ещё Sweetch есть в контекстном меню Проводника и в трее рядом с часами.
+
+## Что нового в 2.1
+
+- **Сотня новых форматов:** PSD, JPEG XL, HEVC, Outlook MSG, Apple Pages, Numbers и Keynote, LaTeX, YAML, TOML, vCard, ASS, LRC и другие — полная таблица ниже
+- **Вторая страница колеса** с редкими форматами — колёсиком мыши, номер страницы в центре
+- **Субтитры в TXT с таймкодами**, из видео и из файлов субтитров; любая кодировка → UTF-8
+- **Обновления в один клик** прямо из программы
+- **Поиск по формату** в «Доп. программах»
+- Обучение при первом запуске
+
+Все изменения — в [CHANGELOG.md](CHANGELOG.md).
 
 ## Что нового в 2.0
 
@@ -107,8 +118,8 @@
 
 | Вариант | Как запустить |
 | --- | --- |
-| **[Установщик EXE](https://github.com/chikirao/Sweetchiki/releases/download/v2.0/Sweetch-2.0-Setup-win-x64.exe)** | Запустите установщик: программа появится в меню «Пуск» и удаляется через настройки Windows. |
-| **[Архив ZIP](https://github.com/chikirao/Sweetchiki/releases/download/v2.0/Sweetch-2.0-win-x64.zip)** | Распакуйте всю папку и запустите `Sweetch.exe`. |
+| **[Установщик EXE](https://github.com/chikirao/Sweetchiki/releases/download/v2.1/Sweetch-2.1-Setup-win-x64.exe)** | Запустите установщик: программа появится в меню «Пуск» и удаляется через настройки Windows. |
+| **[Архив ZIP](https://github.com/chikirao/Sweetchiki/releases/download/v2.1/Sweetch-2.1-win-x64.zip)** | Распакуйте всю папку и запустите `Sweetch.exe`. |
 
 Нужна Windows 10 (1809+) или 11, x64; .NET уже внутри. [Все файлы и контрольные суммы SHA-256](https://github.com/chikirao/Sweetchiki/releases/latest). Версия 1.0 — в [оригинальном репозитории](https://github.com/krllmrzv/Sweetch/releases/tag/v1.0).
 
@@ -116,9 +127,23 @@
 <summary><b>Форматы и доп. программы</b></summary>
 <br />
 
-Изображения (включая RAW с камер: CR2/CR3, NEF, ARW, RAF, DNG, ORF, RW2 и др.), аудио, видео, PDF, документы, таблицы, презентации, субтитры и архивы. Доступные операции зависят от типа файла.
+| Тип | Открывает | Сохраняет |
+| --- | --- | --- |
+| Изображения | JPG, PNG, WebP, AVIF, HEIC, TIFF, BMP, GIF, ICO, JPEG XL, JPEG 2000, PSD/PSB, TGA, QOI, DDS, PPM, PCX, OpenEXR, HDR, CUR, APNG, MNG, GIMP XCF, DICOM; RAW с камер (CR2/CR3, NEF, ARW, RAF, DNG, ORF, RW2 и др.); вектор SVG, SVGZ, EMF, WMF | JPG, PNG, WebP, AVIF, JPEG XL, TIFF, BMP, GIF, ICO, PDF |
+| Видео | MP4, MOV, MKV, WebM, AVI, WMV, FLV, MPEG, TS/MTS, M2TS, 3GP, OGV, VOB, MXF, DivX, ASF, RM, F4V | MP4 (H.264 и HEVC), MOV, MKV, WebM, GIF, MP3, M4A; субтитры из видео в SRT |
+| Аудио | MP3, M4A, AAC, WAV, FLAC, OGG, Opus, AIFF, WMA, AMR, APE, WavPack, TTA, DSD (DSF/DFF), DTS, AC3, E-AC3, MKA, CAF, AU, VOC, W64 | MP3, M4A, WAV, FLAC, OGG, Opus, AIFF |
+| Документы | DOCX, DOC, ODT, RTF, Markdown, HTML, TXT, EPUB, DOCM, DOTX, WPS, WPD, Apple Pages, FODT, OTT, LaTeX, reStructuredText, Org, AsciiDoc, Typst, Jupyter, FB2, Textile, MediaWiki, DocBook, OPML, Djot | DOCX, PDF, ODT, Markdown, HTML, TXT, EPUB, RTF |
+| Субтитры | SRT, VTT, ASS/SSA, LRC, SAMI, TTML/DFXP, MicroDVD; любая кодировка (Windows-1251 и др.) | SRT, VTT, ASS, LRC, TXT (только текст или с таймкодами); всё в UTF-8 |
+| Данные | JSON, JSON Lines, YAML, TOML, XML; контакты vCard (VCF) | друг в друга; CSV и XLSX из списков записей; таблица → JSON или VCF |
+| PDF | PDF | JPG, PNG, многостраничный TIFF, CBZ, TXT, Markdown, DOCX, PPTX; объединить, разделить, выбрать страницы (1-3, 5, 8-) |
+| Таблицы | XLSX, XLS, ODS, CSV, TSV, шаблоны XLT/XLTX/OTS, FODS, Apple Numbers, ET | XLSX, CSV, TSV, ODS, PDF, HTML, JSON, VCF |
+| Презентации | PPTX, PPT, ODP, PPTM, POTX, PPSX, OTP, FODP, Apple Keynote | PDF, PNG, JPG, PPTX, ODP, DOCX (слайд на страницу) |
+| Письма и страницы | EML, Outlook MSG, MHTML | HTML, PDF, EML; вложения — в папку |
+| Архивы | ZIP, 7Z, RAR, TAR и сжатые TAR | ZIP, TAR, TAR.GZ |
 
-Pandoc для документов (DOCX, Markdown, HTML, EPUB, RTF, TXT) и FFmpeg для аудио и видео скачиваются при первой конвертации, которой они нужны, с проверкой SHA-256. LibreOffice для части операций Office/PDF устанавливается отдельно. Пока чего-то не хватает, настройки напоминают об этом плашкой с переходом в «Доп. программы». Обработка файлов локальная.
+Доступные операции зависят от типа файла. Какая доп. программа нужна для формата, видно в настройках: «Доп. программы» → поиск по формату. [План добавления остальных форматов](docs/FORMATS-ROADMAP.md).
+
+Pandoc для документов и разметки и FFmpeg для аудио и видео скачиваются при первой конвертации, которой они нужны, с проверкой SHA-256. LibreOffice для части операций Office/PDF устанавливается отдельно. Пока чего-то не хватает, настройки напоминают об этом плашкой с переходом в «Доп. программы». Обработка файлов локальная.
 
 </details>
 
@@ -126,7 +151,7 @@ Pandoc для документов (DOCX, Markdown, HTML, EPUB, RTF, TXT) и FFm
 <summary><b>Где что хранится</b></summary>
 <br />
 
-Настройки — `%APPDATA%\Sweetch`, загружаемые программы — `%LOCALAPPDATA%\Sweetch\tools`. Скриншоты и виртуальные вложения сохраняются в `Downloads\Sweetch`. Исходные файлы не перезаписываются. Автообновления отключены: Sweetch не обращается к серверу обновлений. Обратная связь открывает Telegram; встроенной отправки сообщений на сторонний сервер нет.
+Настройки — `%APPDATA%\Sweetch`, загружаемые программы — `%LOCALAPPDATA%\Sweetch\tools`. Скриншоты и виртуальные вложения сохраняются в `Downloads\Sweetch`. Исходные файлы не перезаписываются. Раз в несколько часов Sweetch спрашивает у GitHub, вышел ли новый релиз, и предлагает обновиться: установленная версия ставит новый установщик сама, версия из ZIP заменяет свои файлы и перезапускается. Загрузка сверяется с SHA-256 от GitHub. Проверку можно выключить в настройках. Обратная связь открывает Telegram; встроенной отправки сообщений на сторонний сервер нет.
 
 </details>
 

@@ -53,6 +53,12 @@ internal sealed class GlobalInput : IDisposable
 
     public event Action? EscapePressed;
 
+    /// <summary>The mouse wheel turned over an open wheel (see <see cref="WheelAt"/>); the scroll is kept from the window below.</summary>
+    public event Action<int>? Scrolled;
+
+    /// <summary>Called on the hook thread: is a Sweetch wheel open at this screen point?</summary>
+    public Func<Win32.POINT, bool>? WheelAt { get; set; }
+
     /// <summary>Called on the hook thread to decide whether Alt taps should be neutralised.</summary>
     public Func<ModifierKey, bool>? IsWheelKey { get; set; }
 
@@ -194,6 +200,11 @@ internal sealed class GlobalInput : IDisposable
                         if (dx > Win32.GetSystemMetrics(Win32.SM_CXDRAG) * 2 || dy > Win32.GetSystemMetrics(Win32.SM_CYDRAG) * 2)
                             _dragging = true;
                         break;
+                    case Win32.WM_MOUSEWHEEL when WheelAt?.Invoke(pt) == true:
+                        // MSLLHOOKSTRUCT.mouseData: the wheel delta in the high word.
+                        var delta = (short)(Marshal.ReadInt32(lParam, 8) >> 16);
+                        _dispatcher.BeginInvoke(() => Scrolled?.Invoke(delta));
+                        return 1;
                     case Win32.WM_LBUTTONUP:
                         _leftDown = false;
                         _dragging = false;

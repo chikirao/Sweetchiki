@@ -163,5 +163,10 @@ public class MiscTests
         var qsv = FfmpegBackend.OnGpu(cpu, "h264_qsv");
         Assert.Contains("nv12", qsv);
         Assert.Equal("27", qsv[qsv.IndexOf("-global_quality") + 1]);
+        // x265's CRF already matches the card's HEVC scale, and its log option means nothing there.
+        var hevc = FfmpegBackend.OnGpu(FfmpegBackend.CodecArgs("hevc", new Settings { VideoCrf = 23 }).ToList(), "hevc_nvenc");
+        Assert.Equal("28", hevc[hevc.IndexOf("-cq") + 1]);
+        Assert.DoesNotContain("-x265-params", hevc);
+        Assert.Contains("hvc1", hevc);
     }
 }

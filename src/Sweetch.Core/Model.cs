@@ -115,6 +115,9 @@ public abstract class Operation
 
     public IReadOnlyList<ExternalTool> Requires { get; init; } = [];
 
+    /// <summary>Seldom needed: shown on the wheel's other side (scroll to flip), so the front stays roomy.</summary>
+    public bool Rare { get; set; }
+
     public IReadOnlyList<ParameterSpec> Parameters { get; init; } = [];
 
     public abstract bool AppliesTo(IReadOnlyList<FileItem> items);

@@ -18,6 +18,7 @@ internal sealed partial class SettingsWindow
 {
     private WheelKind _wheel = WheelKind.Convert;
     private int _group;
+    private bool _wheelBack;
 
     /// <summary>File types shown as groups, with sample names used to find which slices apply.</summary>
     internal static (string English, string Russian, string Glyph, string[] Samples)[] Groups =>
@@ -31,6 +32,8 @@ internal sealed partial class SettingsWindow
         ("Slides", "Презентации", Glyphs.Page, ["a.pptx", "a.odp"]),
         ("Spreadsheets", "Таблицы", Glyphs.Table, ["a.xlsx", "a.csv"]),
         ("Subtitles", "Субтитры", Glyphs.Subtitles, ["a.srt", "a.vtt"]),
+        ("Data", "Данные", Glyphs.Text, ["a.json", "a.yaml"]),
+        ("Letters", "Письма", Glyphs.Send, ["a.eml", "a.msg"]),
         ("Archives", "Архивы", Glyphs.Pack, ["a.zip", "a.tar"]),
     ];
 
@@ -67,7 +70,7 @@ internal sealed partial class SettingsWindow
     private void WheelsPage(Panel root)
     {
         PageHeader(root, PageName(SettingsPage.Wheels),
-            T("Star your favourite slices: they always come first, in the same place. Use the switch to hide a slice.", "Отметьте избранные секторы: они всегда будут первыми, на одном месте. Переключатель скрывает сектор."));
+            T("Star your favourite slices: they always come first, in the same place. Use the switch to hide a slice. Rare ones wait on the other side: scroll over the wheel to flip it.", "Отметьте избранные секторы: они всегда будут первыми, на одном месте. Переключатель скрывает сектор. Редкие ждут на обратной стороне: прокрутите колёсико над меню, чтобы перевернуть его."));
 
         var top = new DockPanel { Margin = new Thickness(0, 14, 0, 18), LastChildFill = true };
         var wheels = Segmented(
@@ -85,6 +88,7 @@ internal sealed partial class SettingsWindow
         {
             _settings.HiddenOperations.Clear();
             _settings.FavoriteOperations.Clear();
+            _settings.FlippedOperations.Clear();
             Save();
             Rebuild();
         }, glyph: Glyphs.Reset);
@@ -102,7 +106,9 @@ internal sealed partial class SettingsWindow
             return;
         _group = Math.Clamp(_group, 0, groups.Count - 1);
         var (name, _, ops) = groups[_group];
-        var visible = WheelLayout.Arrange(ops, _settings.HiddenOperations, _settings.FavoriteOperations);
+        var hasBack = ops.Any(_settings.IsBackSide);
+        var showBack = _wheelBack && hasBack;
+        var visible = WheelLayout.Arrange(ops.Where(o => _settings.IsBackSide(o) == showBack), _settings.HiddenOperations, _settings.FavoriteOperations);
 
         var grid = new Grid();
 
@@ -122,7 +128,19 @@ internal sealed partial class SettingsWindow
         middle.Children.Add(ColumnLabel(T("2. How the wheel opens", "2. Способ открытия меню")));
         var key = _settings.KeyFor(_wheel);
         var keyName = key == Input.ModifierKey.None ? AppSettings.WheelName(_wheel) : AppSettings.KeyName(key);
-        var preview = WheelWindow.Preview(visible, key, _wheel, keyName, name, $"{visible.Count} / {ops.Count}", _settings.FavoriteOperations.ToHashSet());
+        if (hasBack)
+        {
+            // Which side the picture shows: the one that opens, or the one a scroll turns up.
+            var side = Segmented([(T("Front", "Лицевая"), false), (T("Other side", "Обратная"), true)], showBack, back =>
+            {
+                _wheelBack = back;
+                Rebuild();
+            });
+            side.HorizontalAlignment = HorizontalAlignment.Left;
+            side.Margin = new Thickness(0, 0, 0, 10);
+            middle.Children.Add(side);
+        }
+        var preview = WheelWindow.Preview(visible, key, _wheel, keyName, name, $"{visible.Count} / {ops.Count}", _settings.FavoriteOperations.ToHashSet(), showBack);
         preview.MaxWidth = 420;
         middle.Children.Add(new Border
         {
@@ -140,8 +158,21 @@ internal sealed partial class SettingsWindow
         var right = new StackPanel();
         right.Children.Add(ColumnLabel(T("3. Slices", "3. Секторы")));
         var rows = new StackPanel();
-        foreach (var op in WheelLayout.Arrange(ops, [], _settings.FavoriteOperations))
-            rows.Children.Add(SliceRow(op, rows.Children.Count > 0));
+        foreach (var back in hasBack ? new[] { false, true } : [false])
+        {
+            if (hasBack)
+            {
+                var heading = Text(back ? T("Other side · scroll to flip", "Обратная сторона · колёсико") : T("Front", "Лицевая сторона"), 12.5, FontWeights.SemiBold, Theme.Muted);
+                heading.Margin = new Thickness(10, back ? 14 : 6, 0, 4);
+                rows.Children.Add(heading);
+            }
+            var first = true;
+            foreach (var op in WheelLayout.Arrange(ops.Where(o => _settings.IsBackSide(o) == back), [], _settings.FavoriteOperations))
+            {
+                rows.Children.Add(SliceRow(op, !first));
+                first = false;
+            }
+        }
         right.Children.Add(new Border
         {
             Background = Theme.Card,
@@ -251,7 +282,7 @@ internal sealed partial class SettingsWindow
         return item;
     }
 
-    private UIElement SliceRow(Operation op, bool separator)
+    private UIElement SliceRow(Operation op, bool separator, bool canFlip = true)
     {
         var hidden = _settings.HiddenOperations.Contains(op.Id);
         var favorite = _settings.FavoriteOperations.Contains(op.Id);
@@ -319,6 +350,30 @@ internal sealed partial class SettingsWindow
         row.Children.Add(icon);
         row.Children.Add(toggle);
         row.Children.Add(star);
+        if (canFlip)
+        {
+            var back = _settings.IsBackSide(op);
+            var flip = new TextBlock
+            {
+                Text = Glyphs.Repeat,
+                FontFamily = Theme.Icons,
+                FontSize = 18,
+                Foreground = Theme.Muted,
+                Padding = new Thickness(8),
+                Cursor = Cursors.Hand,
+                VerticalAlignment = VerticalAlignment.Center,
+                ToolTip = back ? T("Move to the front", "На лицевую сторону") : T("Move to the other side", "На обратную сторону"),
+            };
+            flip.MouseLeftButtonUp += (_, _) =>
+            {
+                if (!_settings.FlippedOperations.Remove(op.Id))
+                    _settings.FlippedOperations.Add(op.Id);
+                Save();
+                Rebuild();
+            };
+            DockPanel.SetDock(flip, Dock.Right);
+            row.Children.Add(flip);
+        }
         row.Children.Add(label);
         return new Border
         {

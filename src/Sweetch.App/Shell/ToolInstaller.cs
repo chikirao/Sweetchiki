@@ -22,7 +22,7 @@ internal static class ToolInstaller
     // A fixed, tested release; its checksum is pinned here rather than fetched next to the file.
     private const string PandocUrl = "https://github.com/jgm/pandoc/releases/download/3.12.1/pandoc-3.12.1-windows-x86_64.zip";
     private const string PandocSha256 = "6ef431cb20b2c24a0371fc19200dc49d452be54b1b5c9239f3462841ef53e587";
-    private static readonly HttpClient Http = CreateHttp();
+    public static readonly HttpClient Http = CreateHttp();
 
     public static bool CanInstall(ExternalTool tool) => Installable.Contains(tool);
 
@@ -42,20 +42,25 @@ internal static class ToolInstaller
         var archive = Path.Combine(Path.GetTempPath(), $"sweetch-{exeName}-{Guid.NewGuid():N}{Path.GetExtension(new Uri(url).AbsolutePath)}");
         try
         {
-            await DownloadAsync(url, archive, progress, ct);
-            if (sha256 is not null)
-            {
-                await using var file = File.OpenRead(archive);
-                var actual = Convert.ToHexString(await SHA256.HashDataAsync(file, ct)).ToLowerInvariant();
-                if (actual != sha256)
-                    throw new ConversionException(T("The download doesn't match the checksum published by its authors.", "Контрольная сумма загрузки не совпадает с опубликованной авторами."));
-            }
+            await DownloadVerifiedAsync(url, archive, sha256, progress, ct);
             await Task.Run(() => ExtractExe(archive, exeName, ct), ct);
         }
         finally
         {
             OutputPaths.TryDelete(archive);
         }
+    }
+
+    /// <summary>Downloads to <paramref name="target"/> and, when a checksum is known, refuses a file that doesn't match it.</summary>
+    public static async Task DownloadVerifiedAsync(string url, string target, string? sha256, IProgress<double> progress, CancellationToken ct)
+    {
+        await DownloadAsync(url, target, progress, ct);
+        if (sha256 is null)
+            return;
+        await using var file = File.OpenRead(target);
+        var actual = Convert.ToHexString(await SHA256.HashDataAsync(file, ct)).ToLowerInvariant();
+        if (actual != sha256)
+            throw new ConversionException(T("The download doesn't match the checksum published by its authors.", "Контрольная сумма загрузки не совпадает с опубликованной авторами."));
     }
 
     private static async Task DownloadAsync(string url, string target, IProgress<double> progress, CancellationToken ct)
@@ -110,6 +115,7 @@ internal sealed class NeedsToolOperation : Operation
         Inner = inner;
         Missing = missing;
         Parameters = inner.Parameters;
+        Rare = inner.Rare;
     }
 
     public Operation Inner { get; }

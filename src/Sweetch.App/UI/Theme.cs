@@ -163,6 +163,12 @@ internal static class Theme
     /// </summary>
     public static Color SliceOn(Color strong) => LowContrast ? strong : _palette.Text;
 
+    /// <summary>A slice on the wheel's other side: the backdrop with a hint of the key, so the two sides never look alike.</summary>
+    public static Color BackSlice(Color key) => Mix(key, _palette.Backdrop, IsDark ? 0.2 : 0.28);
+
+    /// <summary>Label on a back-side slice: the key colour on the dark wheel, ink on the light one.</summary>
+    public static Color BackSliceText(Color key) => IsDark ? key : _palette.Text;
+
     /// <summary>Label on the highlighted slice: the key colour on ink, ink on paper, soft text in low contrast.</summary>
     public static Color SliceOnText(Color key) => LowContrast ? OnKey.Color : IsDark ? InkFixed.Color : key;
 
