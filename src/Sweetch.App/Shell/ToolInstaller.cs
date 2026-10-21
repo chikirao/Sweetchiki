@@ -115,6 +115,7 @@ internal sealed class NeedsToolOperation : Operation
         Inner = inner;
         Missing = missing;
         Parameters = inner.Parameters;
+        Rare = inner.Rare;
     }
 
     public Operation Inner { get; }

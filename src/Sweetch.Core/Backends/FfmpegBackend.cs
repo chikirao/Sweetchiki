@@ -38,6 +38,11 @@ public static partial class FfmpegBackend
             "ogg" => ["-vn", "-c:a", "libvorbis", "-q:a", "5"],
             "opus" => ["-vn", "-c:a", "libopus", "-b:a", "128k"],
             "wma" => ["-vn", "-c:a", "wmav2", "-b:a", "192k"],
+            "alac" => ["-vn", "-c:a", "alac"],
+            "wv" => ["-vn", "-c:a", "wavpack"],
+            "tta" => ["-vn", "-c:a", "tta"],
+            "ac3" => ["-vn", "-c:a", "ac3", "-b:a", "448k"],
+            "apng" => ["-an", "-vf", "fps=12,scale='min(640,iw)':-2:flags=lanczos", "-plays", "0", "-f", "apng"],
             "avi" => ["-c:v", "mpeg4", "-q:v", "4", "-c:a", "libmp3lame", "-q:a", "3"],
             "wmv" => ["-c:v", "wmv2", "-q:v", "4", "-c:a", "wmav2"],
             _ => [.. h264, "-c:a", "aac", "-b:a", "160k"],
@@ -206,8 +211,11 @@ public static partial class FfmpegBackend
         + int.Parse(m.Groups[2].Value, CultureInfo.InvariantCulture) * 60
         + double.Parse(m.Groups[3].Value, CultureInfo.InvariantCulture);
 
+    /// <summary>HEVC and ALAC are codecs, not containers: their files are .mp4 and .m4a.</summary>
+    public static string Extension(string format) => format switch { "hevc" => "mp4", "alac" => "m4a", _ => format };
+
     public static Task<string> ConvertAsync(FileItem item, string format, OperationContext ctx, IProgress<double> progress) =>
-        OutputPaths.ProduceAsync(ctx.OutputDirFor(item.Path), item.BaseName, format, tmp =>
+        OutputPaths.ProduceAsync(ctx.OutputDirFor(item.Path), item.BaseName, Extension(format), tmp =>
             RunAsync(ctx, [item.Path], CodecArgs(format, ctx.Settings), tmp, progress));
 
     /// <summary>Re-encodes in the source container with extra filter/encoder args; output gets a suffix.</summary>

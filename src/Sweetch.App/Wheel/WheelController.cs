@@ -24,6 +24,9 @@ internal sealed class WheelController
     private readonly DispatcherTimer _argsTimer;
     private WheelWindow? _wheel;
 
+    // The open drag wheel's window, read by the mouse hook on its own thread to catch scrolls over it.
+    private IntPtr _dragWheel;
+
     public WheelController(AppSettings settings, ToolLocator tools, JobRunner jobs, GlobalInput input)
     {
         _settings = settings;
@@ -51,6 +54,8 @@ internal sealed class WheelController
             if (_wheel is { IsFinished: false, Mode: WheelMode.Click } wheel && !wheel.Contains(point))
                 wheel.Finish();
         };
+        input.WheelAt = point => WheelWindow.Contains(Volatile.Read(ref _dragWheel), point);
+        input.Scrolled += delta => _wheel?.Scroll(delta);
         input.EscapePressed += () =>
         {
             if (_wheel is { IsFinished: false, Mode: WheelMode.Drag } wheel)
@@ -226,10 +231,15 @@ internal sealed class WheelController
         window.Closed += (_, _) =>
         {
             if (ReferenceEquals(_wheel, window))
+            {
                 _wheel = null;
+                Volatile.Write(ref _dragWheel, IntPtr.Zero);
+            }
             window.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, PrepareSpare);
         };
         _wheel = window;
         window.ShowAt(at);
+        // A click wheel gets the scroll itself; a drag wheel never has the mouse, so the hook passes it on.
+        Volatile.Write(ref _dragWheel, mode == WheelMode.Drag ? window.Handle : IntPtr.Zero);
     }
 }

@@ -22,8 +22,27 @@ public static class Catalog
         AddData(ops);
         AddMail(ops);
         AddArchives(ops);
+        foreach (var op in ops)
+            op.Rare = RareIds.Contains(op.Id);
         return ops;
     }
+
+    /// <summary>
+    /// Seldom chosen, so they wait on the wheel's other side: formats few programs open, exports for
+    /// specialists, second ways of doing what the front already does.
+    /// </summary>
+    private static readonly HashSet<string> RareIds =
+    [
+        "image.to.jxl", "image.to.bmp", "image.to.gif",
+        "audio.to.alac", "audio.to.wv", "audio.to.tta", "audio.to.ac3",
+        "video.to.avi", "video.to.apng",
+        "doc.to.tex", "doc.to.rst", "doc.to.typ", "doc.to.adoc", "doc.to.pptx", "doc.to.rtf", "doc.to.odt",
+        "pdf.to.tiff", "pdf.to.cbz", "pdf.to.html", "pdf.to.epub",
+        "sheet.to.html", "sheet.to.json", "sheet.to.vcf", "sheet.to.ods",
+        "slides.to.odp", "slides.to.docx",
+        "subs.to.ass", "subs.to.lrc",
+        "data.to.toml", "data.to.jsonl",
+    ];
 
     /// <summary>Operations for a wheel that apply to the dropped items and whose tools are installed.</summary>
     public static IReadOnlyList<Operation> For(IEnumerable<Operation> all, WheelKind wheel, IReadOnlyList<FileItem> items, ToolLocator tools) =>
@@ -110,11 +129,7 @@ public static class Catalog
         {
             var audioOnly = target is "mp3" or "m4a";
             ops.Add(new PerFileOperation($"video.to.{target}", WheelKind.Convert, Formats.Display(target), audioOnly ? Glyphs.Audio : Glyphs.Video, Formats.Video,
-                async (item, ctx, p) => [target == "hevc"
-                    // HEVC is a codec, not a container: the file is an .mp4.
-                    ? await OutputPaths.ProduceAsync(ctx.OutputDirFor(item.Path), item.BaseName, "mp4", tmp =>
-                        FfmpegBackend.RunAsync(ctx, [item.Path], FfmpegBackend.CodecArgs("hevc", ctx.Settings), tmp, p))
-                    : await FfmpegBackend.ConvertAsync(item, target, ctx, p)], targetFormat: target,
+                async (item, ctx, p) => [await FfmpegBackend.ConvertAsync(item, target, ctx, p)], targetFormat: target,
                 subtitle: target switch { _ when audioOnly => T("audio only", "только звук"), "gif" => T("animation", "анимация"), "hevc" => T("H.265, smaller", "H.265, меньше"), _ => null })
             { Requires = [ExternalTool.Ffmpeg] });
         }
@@ -256,7 +271,7 @@ public static class Catalog
         {
             ops.Add(new PerFileOperation($"doc.to.{target}", WheelKind.Convert, Formats.Display(target), Glyphs.Document, Formats.Documents,
                 async (item, ctx, _) => [await DocumentAsync(item, target, ctx)], targetFormat: target,
-                subtitle: target switch { "docx" => "Word", "md" => "Markdown", "epub" => T("e-book", "электронная книга"), "txt" => "text", "html" => "web", _ => null })
+                subtitle: target switch { "docx" => "Word", "md" => "Markdown", "epub" => T("e-book", "электронная книга"), "txt" => "text", "html" => "web", "tex" => "LaTeX", "rst" => "reStructuredText", "typ" => "Typst", "adoc" => "AsciiDoc", "pptx" => T("slides", "слайды"), _ => null })
             {
                 AvailableFor = (tools, item) => DocumentRoute(item.Format, target, tools) is not null,
             });

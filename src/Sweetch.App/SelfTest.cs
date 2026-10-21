@@ -112,6 +112,15 @@ internal static class SelfTest
             }
             log.Add($"ok {Path.GetFileName(outDir)}/{s.Name}");
         }
+        // The other side, after a scroll: rare formats, in the back-side colours.
+        foreach (var (name, file, mode) in new[] { ("wheel-image-convert-back", N(@"C:\Fotky\dovolená.jpg", @"C:\Photos\vacation.jpg"), WheelMode.Drag), ("wheel-doc-convert-back", @"C:\a.md", WheelMode.Click) })
+        {
+            var flipped = new WheelWindow(mode, WheelKind.Convert, [new FileItem(file)], settings, Source, (_, _) => { });
+            flipped.Scroll(-120);
+            flipped.RenderPreview(Path.Combine(outDir, name + ".png"), 1);
+            flipped.Close();
+        }
+        log.Add($"ok {Path.GetFileName(outDir)}/wheel back sides");
 
         SettingsWindow.Operations = () => [.. core, .. actions];
         settings.FavoriteOperations = ["image.to.webp", "image.compress"];

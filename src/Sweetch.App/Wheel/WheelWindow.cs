@@ -57,6 +57,12 @@ internal sealed class WheelWindow : Window
     private IReadOnlyList<FileItem> _items;
     private IReadOnlyList<Operation> _ops = [];
     private WheelKind _wheel;
+
+    // Two sides: the usual slices and the rare ones; scrolling flips between them.
+    private bool _back;
+    private int _otherSide;
+    private int _scrolled;
+    private DateTime _flippedAt;
     private int _highlight = -1;
     private Win32.POINT _anchor;
     private bool _finished;
@@ -117,6 +123,11 @@ internal sealed class WheelWindow : Window
                 SetHighlight(HitTest(e.GetPosition(_canvas), out bool _));
         };
         MouseLeftButtonUp += OnClick;
+        MouseWheel += (_, e) =>
+        {
+            e.Handled = true;
+            Scroll(e.Delta);
+        };
         KeyDown += OnKeyDown;
         Deactivated += (_, _) =>
         {
@@ -150,13 +161,14 @@ internal sealed class WheelWindow : Window
         _wheel = wheel;
         _items = items ?? [];
         _repeat = false;
+        _back = false;
         LoadOperations();
         Build();
     }
 
     public bool IsFinished => _finished;
 
-    private IntPtr Handle => new WindowInteropHelper(this).Handle;
+    public IntPtr Handle => new WindowInteropHelper(this).Handle;
 
     private Color KeyColor => Theme.KeyColor(_settings.KeyFor(_wheel), _wheel);
 
@@ -193,9 +205,12 @@ internal sealed class WheelWindow : Window
     }
 
     /// <summary>True when a physical screen point lies on the wheel.</summary>
-    public bool Contains(Win32.POINT p)
+    public bool Contains(Win32.POINT p) => Contains(Handle, p);
+
+    /// <summary>The same test from any thread, by window handle (the mouse hook asks it on its own thread).</summary>
+    public static bool Contains(IntPtr handle, Win32.POINT p)
     {
-        if (!Win32.GetWindowRect(Handle, out var rect))
+        if (handle == IntPtr.Zero || !Win32.GetWindowRect(handle, out var rect))
             return false;
         var scale = (rect.Right - rect.Left) / Size;
         var cx = (rect.Left + rect.Right) / 2.0;
@@ -210,6 +225,33 @@ internal sealed class WheelWindow : Window
             return;
         _wheel = wheel;
         _repeat = false;
+        _back = false;
+        LoadOperations();
+        Build();
+        if (Mode == WheelMode.Click && _ops.Count > 0)
+            SetHighlight(0);
+    }
+
+    /// <summary>
+    /// The mouse wheel turned (over the wheel, or anywhere while dragging onto it). Touchpads send many
+    /// small steps, so it flips once per notch and not more often than four times a second.
+    /// </summary>
+    public void Scroll(int delta)
+    {
+        _scrolled += delta;
+        if (Math.Abs(_scrolled) < 120 || DateTime.UtcNow - _flippedAt < TimeSpan.FromMilliseconds(250))
+            return;
+        _scrolled = 0;
+        _flippedAt = DateTime.UtcNow;
+        Flip();
+    }
+
+    /// <summary>Shows the other side: rare slices, or back to the usual ones.</summary>
+    public void Flip()
+    {
+        if (_finished || _repeat || _otherSide == 0)
+            return;
+        _back = !_back;
         LoadOperations();
         Build();
         if (Mode == WheelMode.Click && _ops.Count > 0)
@@ -268,9 +310,15 @@ internal sealed class WheelWindow : Window
 
     private void LoadOperations()
     {
-        _ops = _items.Count == 0 ? []
+        IReadOnlyList<Operation> all = _items.Count == 0 ? []
             : _repeat ? (LastOperation?.Invoke(_items) is { } last ? [last] : [])
             : _source(_wheel, _items);
+        var back = _repeat ? [] : all.Where(_settings.IsBackSide).ToList();
+        var front = _repeat ? all.ToList() : all.Where(o => !_settings.IsBackSide(o)).ToList();
+        // A side with nothing on it is never shown: files whose every slice is rare open on that side.
+        _back = back.Count > 0 && (_back || front.Count == 0);
+        _ops = _back ? back : front;
+        _otherSide = _back ? front.Count : back.Count;
         _highlight = -1;
     }
 
@@ -568,16 +616,18 @@ internal sealed class WheelWindow : Window
         _canvas.Children.Clear();
         _fills.Clear();
         _labels.Clear();
-        Draw(_canvas, _ops, KeyColor, KeyStrong, null, _fills, _labels);
+        Draw(_canvas, _ops, KeyColor, KeyStrong, null, _fills, _labels, _back);
 
-        _hub = new Hub(Mode == WheelMode.Click ? SwitchTo : null);
+        _hub = new Hub(Mode == WheelMode.Click ? SwitchTo : null, Mode == WheelMode.Click ? Flip : null);
         _hub.Place(_canvas);
         UpdateHub();
     }
 
     /// <summary>Disc, slices and the dark hub circle; shared by the live wheel and the settings preview.</summary>
-    private static void Draw(Canvas canvas, IReadOnlyList<Operation> ops, Color key, Color strong, ISet<string>? highlight, List<SolidColorBrush>? fills, List<StackPanel>? labels)
+    private static void Draw(Canvas canvas, IReadOnlyList<Operation> ops, Color key, Color strong, ISet<string>? highlight, List<SolidColorBrush>? fills, List<StackPanel>? labels, bool back = false)
     {
+        var sliceColor = back ? Theme.BackSlice(key) : key;
+        var textColor = back ? Theme.BackSliceText(key) : Theme.OnKey.Color;
         // The shadow sits in a cached parent, so its blur isn't redone each time a slice lights up; the disc
         // itself is drawn again on top, sharp at any DPI.
         var shadow = new Border
@@ -603,7 +653,7 @@ internal sealed class WheelWindow : Window
         for (var i = 0; i < n; i++)
         {
             var lit = highlight?.Contains(ops[i].Id) == true;
-            var fill = new SolidColorBrush(lit ? on : key);
+            var fill = new SolidColorBrush(lit ? on : sliceColor);
             var a0 = i * step - step / 2;
             canvas.Children.Add(new Path
             {
@@ -617,7 +667,7 @@ internal sealed class WheelWindow : Window
             // Try a few wrap widths and nudges along the slice; keep the layout that needs the least shrinking
             // (ties go to the middle position and the wider wrap, so twins on both sides look alike).
             var angle = n == 1 ? 0 : i * step;
-            var foreground = new SolidColorBrush(lit ? onText : Theme.OnKey.Color);
+            var foreground = new SolidColorBrush(lit ? onText : textColor);
             StackPanel label = null!;
             var natural = default(System.Windows.Size);
             var scale = -1.0;
@@ -672,11 +722,11 @@ internal sealed class WheelWindow : Window
     /// A still picture of a wheel with these slices, drawn exactly like the real one (used by the
     /// wheel page in Settings). <paramref name="highlight"/> slices are painted as if selected.
     /// </summary>
-    internal static FrameworkElement Preview(IReadOnlyList<Operation> ops, Input.ModifierKey key, WheelKind wheel, string keyName, string title, string detail, ISet<string>? highlight = null)
+    internal static FrameworkElement Preview(IReadOnlyList<Operation> ops, Input.ModifierKey key, WheelKind wheel, string keyName, string title, string detail, ISet<string>? highlight = null, bool back = false)
     {
         var canvas = new Canvas { Width = Size, Height = Size };
         var strong = Theme.KeyStrongColor(key, wheel);
-        Draw(canvas, ops, Theme.KeyColor(key, wheel), strong, highlight, null, null);
+        Draw(canvas, ops, Theme.KeyColor(key, wheel), strong, highlight, null, null, back);
         var hub = new Hub(null);
         hub.Place(canvas);
         hub.Show(keyName, strong, title, detail, [], -1);
@@ -751,8 +801,8 @@ internal sealed class WheelWindow : Window
     /// <summary>Swaps the slice to ink/paper and back, instantly: colour only, no movement, glow or fade.</summary>
     private void Paint(int index, bool on)
     {
-        _fills[index].Color = on ? Theme.SliceOn(KeyStrong) : KeyColor;
-        ((SolidColorBrush)TextElement.GetForeground(_labels[index])).Color = on ? Theme.SliceOnText(KeyStrong) : Theme.OnKey.Color;
+        _fills[index].Color = on ? Theme.SliceOn(KeyStrong) : _back ? Theme.BackSlice(KeyColor) : KeyColor;
+        ((SolidColorBrush)TextElement.GetForeground(_labels[index])).Color = on ? Theme.SliceOnText(KeyStrong) : _back ? Theme.BackSliceText(KeyColor) : Theme.OnKey.Color;
     }
 
     private void UpdateHub()
@@ -765,7 +815,10 @@ internal sealed class WheelWindow : Window
             .ToList();
         var current = wheels.FindIndex(w => w.w == _wheel);
         var (title, detail) = HubText();
-        _hub.Show(keyName, KeyStrong, title, detail, wheels, current);
+        var flip = _otherSide == 0 ? null
+            : _back ? T("Scroll: back", "Колёсико: назад")
+            : T($"Scroll: {_otherSide} more", $"Колёсико: ещё {_otherSide}");
+        _hub.Show(keyName, KeyStrong, title, detail, wheels, current, flip, _back);
     }
 
     private (string Title, string Detail) HubText()
@@ -808,11 +861,29 @@ internal sealed class WheelWindow : Window
         private readonly TextBlock _detail = Line(11.5, FontWeights.Medium, 0.55);
         private readonly StackPanel _dots = new() { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 12, 0, 0) };
         private readonly Action<WheelKind>? _switch;
+        private readonly Border _flipHint = new() { CornerRadius = new CornerRadius(8), HorizontalAlignment = HorizontalAlignment.Center, Padding = new Thickness(8, 3, 9, 4), Margin = new Thickness(0, 10, 0, 0) };
+        private readonly TextBlock _flipText = new() { FontSize = 11, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center };
+        private readonly TextBlock _flipIcon = new() { FontSize = 13, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 5, 0) };
         private Canvas? _canvas;
 
-        public Hub(Action<WheelKind>? switchTo)
+        public Hub(Action<WheelKind>? switchTo, Action? flip = null)
         {
             _switch = switchTo;
+            _flipIcon.FontFamily = Theme.Icons;
+            _flipIcon.Text = Sweetch.Core.Glyphs.Repeat;
+            var hint = new StackPanel { Orientation = Orientation.Horizontal };
+            hint.Children.Add(_flipIcon);
+            hint.Children.Add(_flipText);
+            _flipHint.Child = hint;
+            if (flip is not null)
+            {
+                _flipHint.Cursor = Cursors.Hand;
+                _flipHint.MouseLeftButtonUp += (_, e) =>
+                {
+                    e.Handled = true;
+                    flip();
+                };
+            }
             _key.FontFamily = Theme.DisplayFont;
             Typo.TrimToCaps(_key);
             _keycap.Child = _key;
@@ -822,6 +893,7 @@ internal sealed class WheelWindow : Window
             _panel.Children.Add(_title);
             _panel.Children.Add(_detail);
             _panel.Children.Add(_dots);
+            _panel.Children.Add(_flipHint);
         }
 
         // The hub is dark (or soft grey in light low contrast); its text follows.
@@ -837,8 +909,15 @@ internal sealed class WheelWindow : Window
             MaxWidth = ContentWidth,
         };
 
-        public void Show(string keyName, Color key, string title, string detail, IReadOnlyList<(WheelKind Wheel, Color Color)> wheels, int current)
+        /// <param name="flip">The hint that the wheel has another side ("Scroll: 6 more"), or null when it hasn't.</param>
+        public void Show(string keyName, Color key, string title, string detail, IReadOnlyList<(WheelKind Wheel, Color Color)> wheels, int current, string? flip = null, bool back = false)
         {
+            // On the back side the hint is filled with the key colour, so it's plain which side is up.
+            _flipHint.Visibility = flip is null ? Visibility.Collapsed : Visibility.Visible;
+            _flipText.Text = flip ?? "";
+            // On the front it's the hub's own colour, a tab hanging off the hub.
+            _flipHint.Background = back ? new SolidColorBrush(key) : Theme.Hub;
+            _flipText.Foreground = _flipIcon.Foreground = back ? Theme.OnKey : Theme.HubText;
             _key.Text = keyName.ToUpperInvariant();
             _keycap.Background = new SolidColorBrush(key);
             _key.Foreground = Theme.OnKey;

@@ -57,6 +57,12 @@ public sealed class AppSettings
     /// <summary>Operation ids that always come first on their wheel, in this order.</summary>
     public List<string> FavoriteOperations { get; set; } = [];
 
+    /// <summary>Slices the user moved to the other side of the wheel than the one they come on.</summary>
+    public List<string> FlippedOperations { get; set; } = [];
+
+    /// <summary>On the wheel's other side (scroll to flip): rare ones, unless the user swapped them.</summary>
+    public bool IsBackSide(Operation op) => op.Rare != FlippedOperations.Contains(op.Id);
+
     /// <summary>The last operation run, for "repeat last" (with the values it asked for, e.g. trim times).</summary>
     public string? LastOperationId { get; set; }
 

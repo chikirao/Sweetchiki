@@ -30,6 +30,11 @@ public static class PandocBackend
         "odt" => "odt",
         "epub" => "epub3",
         "rtf" => "rtf",
+        "tex" => "latex",
+        "rst" => "rst",
+        "typ" => "typst",
+        "adoc" => "asciidoc",
+        "pptx" => "pptx",
         _ => throw new ConversionException(T($"Pandoc cannot write {format}.", $"Pandoc не поддерживает запись {format}.")),
     };
 
@@ -51,7 +56,7 @@ public static class PandocBackend
             // ("hPutChar: invalid argument"). Warnings are not shown to users anyway.
             "--quiet",
         };
-        if (format is "html" or "rtf" or "epub" || inputFormat == "html")
+        if (format is "html" or "rtf" or "epub" or "tex" || inputFormat == "html")
             args.Add("--standalone");
         if (format == "html")
             args.Add("--embed-resources");

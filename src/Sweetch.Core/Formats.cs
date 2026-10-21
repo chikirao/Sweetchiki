@@ -54,11 +54,11 @@ public static class Formats
 
     public static readonly HashSet<string> Audio = Set("mp3", "m4a", "aac", "wav", "flac", "ogg", "opus", "aiff", "wma",
         "amr", "ape", "wv", "tta", "dsf", "dff", "dts", "ac3", "eac3", "mka", "caf", "au", "voc", "w64");
-    public static readonly string[] AudioOutputs = ["mp3", "m4a", "wav", "flac", "ogg", "opus", "aiff"];
+    public static readonly string[] AudioOutputs = ["mp3", "m4a", "wav", "flac", "ogg", "opus", "aiff", "alac", "wv", "tta", "ac3"];
 
     public static readonly HashSet<string> Video = Set("mp4", "mov", "mkv", "webm", "avi", "wmv", "flv", "mpg", "mpeg", "3gp", "ts", "mts",
         "ogv", "vob", "m2ts", "mxf", "divx", "asf", "rm", "f4v");
-    public static readonly string[] VideoOutputs = ["mp4", "hevc", "mov", "mkv", "webm", "gif", "mp3", "m4a"];
+    public static readonly string[] VideoOutputs = ["mp4", "hevc", "mov", "mkv", "webm", "gif", "mp3", "m4a", "avi", "apng"];
 
     public static readonly HashSet<string> Pdf = Set("pdf");
 
@@ -69,7 +69,7 @@ public static class Formats
     /// <summary>What LibreOffice Writer opens: Word in all its flavours, WordPerfect, Works, Apple Pages, OpenDocument.</summary>
     public static readonly HashSet<string> OfficeDocuments = Set("doc", "docx", "odt", "rtf", "txt", "html", "docm", "dotx", "dotm", "wps", "wpd", "pages", "fodt", "ott");
     public static readonly HashSet<string> PandocInputs = Set(["docx", "odt", "rtf", "md", "txt", "html", "epub", .. Markup]);
-    public static readonly string[] DocumentOutputs = ["docx", "pdf", "odt", "md", "html", "txt", "epub", "rtf"];
+    public static readonly string[] DocumentOutputs = ["docx", "pdf", "odt", "md", "html", "txt", "epub", "rtf", "tex", "rst", "typ", "adoc", "pptx"];
 
     public static readonly HashSet<string> Slides = Set("pptx", "ppt", "odp", "pptm", "potx", "potm", "ppsx", "pps", "otp", "fodp", "key");
     public static readonly string[] SlideOutputs = ["pdf", "png", "jpg", "pptx", "odp", "docx"];
