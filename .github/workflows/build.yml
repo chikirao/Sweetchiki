@@ -24,10 +24,20 @@ jobs:
             'canon_r6.CR3' = 'https://raw.pixls.us/data/Canon/EOS%20R6/Canon_EOS_R6_CRAW_ISO_100_nocrop_nodual.CR3'
             'iphone12pro.DNG' = 'https://raw.pixls.us/data/Apple/iPhone%2012%20Pro/IMG_1361.DNG'
           }
+          # The sample site is sometimes down: try a few times, and without samples the RAW test skips
+          # itself instead of failing a release.
+          $got = 0
           foreach ($name in $samples.Keys) {
-            Invoke-WebRequest $samples[$name] -OutFile "raw-samples/$name"
+            for ($i = 1; $i -le 3; $i++) {
+              try { Invoke-WebRequest $samples[$name] -OutFile "raw-samples/$name"; $got++; break }
+              catch { Write-Warning "raw.pixls.us, try ${i}: $($_.Exception.Message)"; Start-Sleep -Seconds (5 * $i) }
+            }
           }
-          "SWEETCH_RAW_SAMPLES=$PWD\raw-samples" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          if ($got -eq $samples.Count) {
+            "SWEETCH_RAW_SAMPLES=$PWD\raw-samples" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          } else {
+            Write-Warning 'RAW samples unavailable: the camera RAW test is skipped in this run.'
+          }
       - name: Test
         run: dotnet test tests/Sweetch.Tests -c Release
       - name: Build
