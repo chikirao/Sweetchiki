@@ -56,6 +56,12 @@ internal sealed class GlobalInput : IDisposable
     /// <summary>The mouse wheel turned over an open wheel (see <see cref="WheelAt"/>); the scroll is kept from the window below.</summary>
     public event Action<int>? Scrolled;
 
+    /// <summary>Tab was pressed while a drag wheel is open (see <see cref="TabFlips"/>); the key is kept from the window below.</summary>
+    public event Action? TabPressed;
+
+    /// <summary>Called on the hook thread: should Tab turn the wheel's page right now?</summary>
+    public Func<bool>? TabFlips { get; set; }
+
     /// <summary>Called on the hook thread: is a Sweetch wheel open at this screen point?</summary>
     public Func<Win32.POINT, bool>? WheelAt { get; set; }
 
@@ -63,6 +69,8 @@ internal sealed class GlobalInput : IDisposable
     public Func<ModifierKey, bool>? IsWheelKey { get; set; }
 
     public bool IsDragging => _dragging;
+
+    private bool _tabDown;
 
     public Win32.POINT Cursor => new() { X = Volatile.Read(ref _cursorX), Y = Volatile.Read(ref _cursorY) };
 
@@ -124,6 +132,26 @@ internal sealed class GlobalInput : IDisposable
                 var flags = (uint)Marshal.ReadInt32(lParam, 8);
                 var message = (int)wParam;
                 var injected = (flags & Win32.LLKHF_INJECTED) != 0;
+                if (vk == 0x09 && !injected)
+                {
+                    var down = message is Win32.WM_KEYDOWN or Win32.WM_SYSKEYDOWN;
+                    if (down && (_tabDown || (_dragging && TabFlips?.Invoke() == true)))
+                    {
+                        if (!_tabDown)
+                            _dispatcher.BeginInvoke(() => TabPressed?.Invoke());
+                        _tabDown = true;
+                        // Shift+Tab is a combination: releasing Shift afterwards must not count as a tap.
+                        _pendingTap = ModifierKey.None;
+                        return 1;
+                    }
+                    if (!down && _tabDown)
+                    {
+                        // The release of a press we kept, even if the drop already ended the drag: swallowed too,
+                        // or the window below would get half a key press, and the next drag's Tab would be lost.
+                        _tabDown = false;
+                        return 1;
+                    }
+                }
                 // Ignore synthetic keys (ours and other tools'); a tap must come from the keyboard.
                 if (!injected)
                     OnKey(vk, message is Win32.WM_KEYDOWN or Win32.WM_SYSKEYDOWN);

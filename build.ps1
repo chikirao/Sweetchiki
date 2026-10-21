@@ -1,5 +1,5 @@
 # The version goes into Sweetch.exe; the updater compares it with the latest GitHub release.
-param([ValidatePattern('^\d+\.\d+(\.\d+)?$')][string]$Version = '2.1.0')
+param([ValidatePattern('^\d+\.\d+(\.\d+)?$')][string]$Version = '2.1.1')
 $ErrorActionPreference = 'Stop'
 Push-Location $PSScriptRoot
 try {
