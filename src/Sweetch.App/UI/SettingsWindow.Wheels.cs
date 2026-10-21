@@ -70,7 +70,7 @@ internal sealed partial class SettingsWindow
     private void WheelsPage(Panel root)
     {
         PageHeader(root, PageName(SettingsPage.Wheels),
-            T("Star your favourite slices: they always come first, in the same place. Use the switch to hide a slice. Rare ones wait on the other side: scroll over the wheel to flip it.", "Отметьте избранные секторы: они всегда будут первыми, на одном месте. Переключатель скрывает сектор. Редкие ждут на обратной стороне: прокрутите колёсико над меню, чтобы перевернуть его."));
+            T("Star your favourite slices: they always come first, in the same place. Use the switch to hide a slice. Rare ones wait on the other side: scroll over the wheel or press Tab to flip it.", "Отметьте избранные секторы: они всегда будут первыми, на одном месте. Переключатель скрывает сектор. Редкие ждут на обратной стороне: прокрутите колёсико над меню или нажмите Tab, чтобы перевернуть его."));
 
         var top = new DockPanel { Margin = new Thickness(0, 14, 0, 18), LastChildFill = true };
         var wheels = Segmented(
@@ -162,7 +162,7 @@ internal sealed partial class SettingsWindow
         {
             if (hasBack)
             {
-                var heading = Text(back ? T("Other side · scroll to flip", "Обратная сторона · колёсико") : T("Front", "Лицевая сторона"), 12.5, FontWeights.SemiBold, Theme.Muted);
+                var heading = Text(back ? T("Other side · scroll or Tab", "Обратная сторона · колёсико или Tab") : T("Front", "Лицевая сторона"), 12.5, FontWeights.SemiBold, Theme.Muted);
                 heading.Margin = new Thickness(10, back ? 14 : 6, 0, 4);
                 rows.Children.Add(heading);
             }

@@ -56,6 +56,8 @@ internal sealed class WheelController
         };
         input.WheelAt = point => WheelWindow.Contains(Volatile.Read(ref _dragWheel), point);
         input.Scrolled += delta => _wheel?.Scroll(delta);
+        input.TabFlips = () => Volatile.Read(ref _dragWheel) != IntPtr.Zero;
+        input.TabPressed += () => _wheel?.Flip();
         input.EscapePressed += () =>
         {
             if (_wheel is { IsFinished: false, Mode: WheelMode.Drag } wheel)

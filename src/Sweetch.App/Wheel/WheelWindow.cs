@@ -236,7 +236,7 @@ internal sealed class WheelWindow : Window
     }
 
     /// <summary>
-    /// The mouse wheel turned (over the wheel, or anywhere while dragging onto it). Touchpads send many
+    /// The mouse wheel turned (over the wheel, or anywhere over it while dragging). Touchpads send many
     /// small steps, so it flips once per notch and not more often than four times a second.
     /// </summary>
     public void Scroll(int delta)
@@ -423,7 +423,11 @@ internal sealed class WheelWindow : Window
                 if (_highlight >= 0)
                     Run(_highlight);
                 break;
+            case Key.Tab when _otherSide > 0:
+                Flip();
+                break;
             case Key.Tab:
+                // One page: Tab goes on to the next wheel, as before pages existed.
                 var next = (Array.IndexOf(WheelOrder, _wheel) + (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) ? 2 : 1)) % WheelOrder.Length;
                 SwitchTo(WheelOrder[next]);
                 break;
@@ -848,7 +852,7 @@ internal sealed class WheelWindow : Window
         }
         var name = AppSettings.WheelName(_wheel);
         if (Teach)
-            return (name, T("Scroll for more", "Крутите колёсико"));
+            return (name, T("Scroll or Tab: more", "Колёсико или Tab"));
         if (_items.Count == 0)
             return (name, T("Drag a file here", "Перетащите файл сюда"));
         if (_ops.Count == 0)

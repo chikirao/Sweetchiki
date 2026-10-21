@@ -163,9 +163,9 @@ internal sealed class TutorialWindow : Window
     }
 
     private (string, string, UIElement) Pages() =>
-        (T("Scroll for page two", "Крутите колёсико — вторая страница"),
-         T("Rare formats wait on page two, so the first stays roomy. Turn the mouse wheel while the wheel is open — also while dragging. The tab under the middle shows the page: 1 / 2. Files with nothing rare have one page.",
-           "Редкие форматы ждут на второй странице, чтобы на первой было просторно. Покрутите колёсико мыши, пока меню открыто, — и во время перетаскивания тоже. Язычок под центром показывает страницу: 1 / 2. Если редкого для файла нет, страница одна."),
+        (T("Scroll or Tab for page two", "Колёсико или Tab — вторая страница"),
+         T("Rare formats wait on page two, so the first stays roomy. Turn the mouse wheel or press Tab while the wheel is open — also while dragging. The tab under the middle shows the page: 1 / 2. Files with nothing rare have one page.",
+           "Редкие форматы ждут на второй странице, чтобы на первой было просторно. Покрутите колёсико мыши или нажмите Tab, пока меню открыто, — и во время перетаскивания тоже. Язычок под центром показывает страницу: 1 / 2. Если редкого для файла нет, страница одна."),
          Row(Wheel(WheelKind.Convert, "photo.jpg", highlight: null, back: false, pages: 2),
              Flip(),
              Wheel(WheelKind.Convert, "photo.jpg", highlight: null, back: true, pages: 2)));
