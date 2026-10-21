@@ -61,7 +61,7 @@ def hero(shots, theme):
 
     draw = ImageDraw.Draw(canvas)
     title = font(800, 132)
-    draw.text((width // 2, 150), 'Sweetch 2.0', font=title, fill=text, anchor='mm')
+    draw.text((width // 2, 150), 'Sweetch 2.1', font=title, fill=text, anchor='mm')
     draw.text((width // 2, 250), 'Перетащите файл, нажмите клавишу — и отпустите над форматом', font=font(500, 40), fill=muted, anchor='mm')
     return canvas.convert('RGB')  # full size: sharp on high-DPI screens
 

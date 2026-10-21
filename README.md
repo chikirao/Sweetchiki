@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/hero-dark.png" />
-    <img src="docs/hero-light.png" width="100%" alt="Sweetch 2.0: колёса конвертации, инструментов и действий" />
+    <img src="docs/hero-light.png" width="100%" alt="Sweetch 2.1: колёса конвертации, инструментов и действий" />
   </picture>
 </p>
 
@@ -20,8 +20,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/chikirao/Sweetchiki/releases/download/v2.0/Sweetch-2.0-Setup-win-x64.exe"><img src="https://img.shields.io/badge/%D0%A1%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-%D1%83%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D1%89%D0%B8%D0%BA%20EXE-FF6B3D?style=for-the-badge&logo=windows&logoColor=white&labelColor=0F0F0E" alt="Скачать установщик EXE" /></a>
-  <a href="https://github.com/chikirao/Sweetchiki/releases/download/v2.0/Sweetch-2.0-win-x64.zip"><img src="https://img.shields.io/badge/%D0%B8%D0%BB%D0%B8-%D0%B0%D1%80%D1%85%D0%B8%D0%B2%20ZIP-555550?style=for-the-badge&labelColor=0F0F0E" alt="Скачать архив ZIP" /></a>
+  <a href="https://github.com/chikirao/Sweetchiki/releases/download/v2.1/Sweetch-2.1-Setup-win-x64.exe"><img src="https://img.shields.io/badge/%D0%A1%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-%D1%83%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D1%89%D0%B8%D0%BA%20EXE-FF6B3D?style=for-the-badge&logo=windows&logoColor=white&labelColor=0F0F0E" alt="Скачать установщик EXE" /></a>
+  <a href="https://github.com/chikirao/Sweetchiki/releases/download/v2.1/Sweetch-2.1-win-x64.zip"><img src="https://img.shields.io/badge/%D0%B8%D0%BB%D0%B8-%D0%B0%D1%80%D1%85%D0%B8%D0%B2%20ZIP-555550?style=for-the-badge&labelColor=0F0F0E" alt="Скачать архив ZIP" /></a>
 </p>
 
 <p align="center">
@@ -56,6 +56,17 @@
 
 Отпустите файл в центре колеса — отмена. Без мыши: выберите файлы в Проводнике и нажмите <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>Space</kbd>. Ещё Sweetch есть в контекстном меню Проводника и в трее рядом с часами.
 
+## Что нового в 2.1
+
+- **Сотня новых форматов:** PSD, JPEG XL, HEVC, Outlook MSG, Apple Pages, Numbers и Keynote, LaTeX, YAML, TOML, vCard, ASS, LRC и другие — полная таблица ниже
+- **Вторая страница колеса** с редкими форматами — колёсиком мыши, номер страницы в центре
+- **Субтитры в TXT с таймкодами**, из видео и из файлов субтитров; любая кодировка → UTF-8
+- **Обновления в один клик** прямо из программы
+- **Поиск по формату** в «Доп. программах»
+- Обучение при первом запуске
+
+Все изменения — в [CHANGELOG.md](CHANGELOG.md).
+
 ## Что нового в 2.0
 
 <table>
@@ -72,8 +83,6 @@
 - Новые настройки: цветные плитки, понятные разделы, тонкая прокрутка
 - Тёмная и светлая темы, схема «Низкий контраст»
 - Раскладка подстраивается под узкое окно
-- Вторая страница колеса с редкими форматами — колёсиком мыши, номер страницы в центре
-- Короткое обучение при первом запуске
 - Новый логотип и иконка в трее
 
 </td>
@@ -109,8 +118,8 @@
 
 | Вариант | Как запустить |
 | --- | --- |
-| **[Установщик EXE](https://github.com/chikirao/Sweetchiki/releases/download/v2.0/Sweetch-2.0-Setup-win-x64.exe)** | Запустите установщик: программа появится в меню «Пуск» и удаляется через настройки Windows. |
-| **[Архив ZIP](https://github.com/chikirao/Sweetchiki/releases/download/v2.0/Sweetch-2.0-win-x64.zip)** | Распакуйте всю папку и запустите `Sweetch.exe`. |
+| **[Установщик EXE](https://github.com/chikirao/Sweetchiki/releases/download/v2.1/Sweetch-2.1-Setup-win-x64.exe)** | Запустите установщик: программа появится в меню «Пуск» и удаляется через настройки Windows. |
+| **[Архив ZIP](https://github.com/chikirao/Sweetchiki/releases/download/v2.1/Sweetch-2.1-win-x64.zip)** | Распакуйте всю папку и запустите `Sweetch.exe`. |
 
 Нужна Windows 10 (1809+) или 11, x64; .NET уже внутри. [Все файлы и контрольные суммы SHA-256](https://github.com/chikirao/Sweetchiki/releases/latest). Версия 1.0 — в [оригинальном репозитории](https://github.com/krllmrzv/Sweetch/releases/tag/v1.0).
 

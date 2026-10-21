@@ -1,5 +1,5 @@
 # The version goes into Sweetch.exe; the updater compares it with the latest GitHub release.
-param([ValidatePattern('^\d+\.\d+(\.\d+)?$')][string]$Version = '2.0.0')
+param([ValidatePattern('^\d+\.\d+(\.\d+)?$')][string]$Version = '2.1.0')
 $ErrorActionPreference = 'Stop'
 Push-Location $PSScriptRoot
 try {
@@ -28,7 +28,8 @@ try {
     if (Get-Process Sweetch -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$PSScriptRoot\publish\*" }) {
         throw 'Sweetch запущен из папки publish: закройте его (значок в трее → Выход) и запустите сборку снова.'
     }
-    if (Test-Path publish) { Remove-Item publish -Recurse -Force }
+    # Empty the folder rather than delete it: a terminal opened in it ("Open terminal" on the wheel) would block that.
+    if (Test-Path publish) { Get-ChildItem publish -Force | Remove-Item -Recurse -Force }
     & $dotnet publish src/Sweetch.App/Sweetch.App.csproj -c Release -r win-x64 --self-contained -p:Version=$Version -o publish
     if ($LASTEXITCODE -ne 0) { throw 'Сборка Sweetch завершилась с ошибкой.' }
     Copy-Item LICENSE, THIRD-PARTY-NOTICES.md, README.md publish/
