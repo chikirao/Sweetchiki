@@ -35,14 +35,33 @@ internal sealed partial class SettingsWindow
         var telegram = Button("Telegram", () => Shell.Updater.Open(Brand.Channel), primary: true, glyph: Glyphs.Send, onTile: true);
         Place(grid, Tile(Theme.Mint, T("Ideas and questions", "Идеи и вопросы"),
             T("News and feedback on the project's Telegram channel.", "Новости и обратная связь в Telegram-канале проекта."), telegram, height: 200), 2, 1);
-        Place(grid, Tile(Theme.Sky, T("Updates", "Обновления"),
-            T("Automatic updates are disabled. New releases will be announced on the channel.", "Автообновления отключены. Новые версии будут опубликованы в канале."),
-            TileIcon(Glyphs.Update), height: 140), 3, 0, span: 2);
+        Place(grid, UpdatesTile(), 3, 0, span: 2);
         root.Children.Add(grid);
 
         var footer = Text(T("Local processing. Your files stay on your computer.", "Локальная обработка. Ваши файлы остаются на компьютере."), 13, FontWeights.Medium, Theme.Muted);
         footer.Margin = new Thickness(4, 20, 0, 0);
         root.Children.Add(footer);
+    }
+
+    /// <summary>What the updater knows right now, and the one button that fits: update, or check again.</summary>
+    private Border UpdatesTile()
+    {
+        var updater = Updater;
+        var text = updater switch
+        {
+            { Installing: true } => T($"Downloading version {updater.Available?.Version}… {updater.Progress:P0}", $"Скачиваю версию {updater.Available?.Version}… {updater.Progress:P0}"),
+            { Available: { } u } => T($"Version {u.Version} is out. Sweetch will install it and start again.", $"Вышла версия {u.Version}. Sweetch установит её и перезапустится."),
+            { LastError: { } e } => T($"Couldn't check: {e}", $"Не удалось проверить: {e}"),
+            { LastChecked: { } at } => T($"You have the latest version. Checked at {at:HH:mm}.", $"У вас последняя версия. Проверено в {at:HH:mm}."),
+            _ => T("Sweetch looks for new versions on GitHub by itself.", "Sweetch сам проверяет новые версии на GitHub."),
+        };
+        FrameworkElement? button = updater switch
+        {
+            null or { Installing: true } => null,
+            { Available: { } u } => Button(T($"Update to {u.Version}", $"Обновить до {u.Version}"), () => _ = updater.InstallAsync(u), primary: true, glyph: Glyphs.Download, onTile: true),
+            _ => Button(T("Check now", "Проверить"), () => _ = updater.CheckAsync(), glyph: Glyphs.Refresh, onTile: true),
+        };
+        return Tile(Theme.Sky, T("Updates", "Обновления"), text, button ?? TileIcon(Glyphs.Update), height: 140);
     }
 
     private static void Place(Grid grid, FrameworkElement element, int row, int column, int span = 1)

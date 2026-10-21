@@ -62,7 +62,8 @@ public sealed class AppSettings
 
     public Dictionary<string, string>? LastParameters { get; set; }
 
-    public bool CheckForUpdates { get; set; } = false;
+    /// <summary>Look for a new release on GitHub. A new name, so settings saved while updates were off don't keep them off.</summary>
+    public bool AutoUpdateCheck { get; set; } = true;
 
     /// <summary>Slices the user put together (e.g. "JPG 70 %"); they appear on the wheels like the built-in ones.</summary>
     public List<Preset> Presets { get; set; } = [];

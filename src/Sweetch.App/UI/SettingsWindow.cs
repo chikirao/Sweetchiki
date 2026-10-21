@@ -442,6 +442,12 @@ internal sealed partial class SettingsWindow : Window
             Toggle(ShellIntegration.IsAutostartEnabled, v => Apply(() => ShellIntegration.SetAutostart(v))), glyph: Glyphs.Power));
         root.Children.Add(Card(T("File Explorer context menu", "Контекстное меню Проводника"), T("A “Sweetch…” item on right-click", "Пункт «Sweetch…» при нажатии правой кнопкой"),
             Toggle(ShellIntegration.IsContextMenuEnabled, v => Apply(() => ShellIntegration.SetContextMenu(v))), glyph: Glyphs.OpenLink));
+        root.Children.Add(Card(T("Check for updates", "Проверять обновления"), T("Asks GitHub for a new release every few hours and offers to install it", "Раз в несколько часов смотрит новый релиз на GitHub и предлагает установить"),
+            Toggle(_settings.AutoUpdateCheck, v =>
+            {
+                _settings.AutoUpdateCheck = v;
+                Save();
+            }), glyph: Glyphs.Update));
     }
 
     private void GesturesPage(Panel root)

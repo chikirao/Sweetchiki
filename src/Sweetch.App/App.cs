@@ -100,7 +100,7 @@ internal sealed class App : Application
         _watcher.Apply();
         SettingsWindow.Updater = _updater;
         SettingsWindow.Operations = () => _controller.AllOperations;
-        // Updates are disabled until a Sweetch release repository is configured.
+        _updater.StartBackgroundChecks(_settings, update => _tray.OfferUpdate(update.Version, () => _ = _updater.InstallAsync(update)));
         _hotkey = new HotkeyListener(_controller.OnHotkey);
         ApplyHotkey();
         _instance.Listen(Dispatcher, HandleArgs);

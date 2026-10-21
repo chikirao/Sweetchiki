@@ -114,7 +114,10 @@ internal static class Controls
             if (!e.WidthChanged)
                 return;
             side.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-            var narrow = e.NewSize.Width - side.DesiredSize.Width < room;
+            // Moving under makes the page taller, which can bring in the scroll bar and take back exactly the
+            // width that decided it: going back to the right needs a margin, or the layout flips forever.
+            var wasNarrow = DockPanel.GetDock(side) == Dock.Bottom;
+            var narrow = e.NewSize.Width - side.DesiredSize.Width < room + (wasNarrow ? 24 : 0);
             DockPanel.SetDock(side, narrow ? Dock.Bottom : Dock.Right);
             side.Margin = narrow ? under : beside;
             side.HorizontalAlignment = narrow ? HorizontalAlignment.Left : HorizontalAlignment.Stretch;

@@ -29,9 +29,9 @@ internal static class SelfTest
             Check(Enum.GetValues<Language>().Length == 2, "only English and Russian languages");
             Check(Brand.Trc20 == "TQHTy7kbk3ngYTUfrTpEeSi3hP38tnqJNU", "TRC20 support address");
             Check(Brand.DonatePay == "https://donatepay.ru/don/1539048" && Brand.Channel == "https://t.me/mmmorozov", "project links");
-            var disabledUpdater = new Shell.Updater();
-            Check(disabledUpdater.CheckAsync().GetAwaiter().GetResult() is null && disabledUpdater.LastChecked is null, "updates disabled");
-            log.Add("ok Sweetch 2.0 branding, links, languages and disabled updates");
+            Check(Shell.Updater.Current.Major >= 2, "version from the build");
+            Check(Shell.Updater.ReplaceScript(1, @"C:\Temp\new", @"C:\Users\O'Neil\Свитч").Contains(@"'C:\Users\O''Neil\Свитч'"), "update script quotes paths");
+            log.Add($"ok Sweetch {Shell.Updater.Current} branding, links, languages, updater");
             TestPandoc(outDir, log);
             foreach (var (language, dark, low, folder) in new[]
                      {
@@ -50,7 +50,7 @@ internal static class SelfTest
             TestSpeed(log);
             log.AddRange(SmokeTest.Run(Path.Combine(outDir, "smoke")));
             // Saved after every step, so a hard crash (which skips the catch below) still shows where it stopped.
-            foreach (var step in new Action[] { () => TestSettingsRoundTrip(log), () => TestExplorerCom(outDir, log), () => TestDrops(log), () => TestWatchFolder(outDir, log), () => TestOcr(outDir, log), () => log.Add("ok updates disabled: no network request") })
+            foreach (var step in new Action[] { () => TestSettingsRoundTrip(log), () => TestExplorerCom(outDir, log), () => TestDrops(log), () => TestWatchFolder(outDir, log), () => TestOcr(outDir, log), () => log.Add("ok updates: checked by the app, not by the self-test") })
             {
                 File.WriteAllLines(Path.Combine(outDir, "self-test.txt"), log);
                 step();
@@ -286,7 +286,7 @@ internal static class SelfTest
         Check(back.Hotkey == HotkeyPreset.CtrlAltW && back.FavoriteOperations.Single() == "image.to.webp" && back.Language == Language.Russian, "settings JSON round trip");
         Check(json.Contains("\"CtrlAltW\""), "enums stored as names");
         Check(back.Appearance == AppAppearance.Light, "theme setting round trip");
-        Check(AppSettings.Folder.EndsWith("Sweetch") && !new AppSettings().CheckForUpdates, "isolated settings and updates off by default");
+        Check(AppSettings.Folder.EndsWith("Sweetch") && new AppSettings().AutoUpdateCheck, "isolated settings and update checks on by default");
         log.Add("ok settings json");
     }
 
