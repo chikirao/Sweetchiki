@@ -34,6 +34,13 @@ public class IntegrationTests : IClassFixture<IntegrationTests.Samples>
                 image.Write(Path.Combine(Dir, "druhý.jpg"));
             }
             Files["png"] = png;
+            // Formats Magick.NET reads besides the common ones; edits are saved back in each of them.
+            foreach (var ext in new[] { "psd", "tga", "jxl", "jp2", "exr", "qoi", "dds", "ppm" })
+            {
+                using var image = new MagickImage(png);
+                Files[ext] = Path.Combine(Dir, $"obraz.{ext}");
+                image.Write(Files[ext]);
+            }
             Files["jpg"] = Path.Combine(Dir, "druhý.jpg");
             File.WriteAllText(Path.Combine(Dir, "vektor.svg"),
                 "<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><circle cx='32' cy='32' r='30' fill='orange'/></svg>");
@@ -106,7 +113,32 @@ public class IntegrationTests : IClassFixture<IntegrationTests.Samples>
                 Files["mp3"] = Path.Combine(Dir, "zvuk2.mp3");
                 Ffmpeg("-f", "lavfi", "-i", "testsrc=size=80x60:rate=5:duration=1", Path.Combine(Dir, "animace.gif"));
                 Files["gif"] = Path.Combine(Dir, "animace.gif");
+                Ffmpeg("-i", Files["mp4"], "-i", Files["srt"], "-map", "0", "-map", "1", "-c", "copy", "-c:s", "srt", Path.Combine(Dir, "s titulky.mkv"));
+                Files["subs"] = Path.Combine(Dir, "s titulky.mkv");
+                Ffmpeg("-i", Files["mp4"], "-c", "copy", "-f", "mpegts", Path.Combine(Dir, "kamera.m2ts"));
+                Files["m2ts"] = Path.Combine(Dir, "kamera.m2ts");
+                Ffmpeg("-f", "lavfi", "-i", "sine=frequency=330:duration=1", "-c:a", "wavpack", Path.Combine(Dir, "bezztrát.wv"));
+                Files["wv"] = Path.Combine(Dir, "bezztrát.wv");
+                Ffmpeg("-f", "lavfi", "-i", "sine=frequency=550:duration=1", "-c:a", "ac3", Path.Combine(Dir, "kino.ac3"));
+                Files["ac3"] = Path.Combine(Dir, "kino.ac3");
             }
+            // Markup that only pandoc reads.
+            File.WriteAllText(Path.Combine(Dir, "článek.tex"), """
+                \documentclass{article}
+                \begin{document}
+                \section{Nadpis}
+                Příliš žluťoučký kůň.
+                \end{document}
+                """, new UTF8Encoding(false));
+            Files["tex"] = Path.Combine(Dir, "článek.tex");
+            File.WriteAllText(Path.Combine(Dir, "návod.rst"), "Nadpis\n======\n\n- jedna\n- dvě\n", new UTF8Encoding(false));
+            Files["rst"] = Path.Combine(Dir, "návod.rst");
+            File.WriteAllText(Path.Combine(Dir, "poznámky.org"), "* Nadpis\n** Úkol\nText.\n", new UTF8Encoding(false));
+            Files["org"] = Path.Combine(Dir, "poznámky.org");
+            File.WriteAllText(Path.Combine(Dir, "sešit.ipynb"),
+                "{\"cells\":[{\"cell_type\":\"markdown\",\"metadata\":{},\"source\":[\"# Nadpis\"]}],\"metadata\":{},\"nbformat\":4,\"nbformat_minor\":5}", new UTF8Encoding(false));
+            Files["ipynb"] = Path.Combine(Dir, "sešit.ipynb");
+
             if (Tools.Has(ExternalTool.Pandoc))
             {
                 var docx = Path.Combine(Dir, "text.docx");
@@ -146,7 +178,8 @@ public class IntegrationTests : IClassFixture<IntegrationTests.Samples>
     }
 
     public static TheoryData<string> SampleKeys() => new(
-        "png", "jpg", "svg", "pdf", "md", "html", "txt", "xlsx", "csv", "srt", "folder", "zip", "tgz", "mp4", "avi", "wav", "mp3", "gif", "docx", "pptx");
+        "png", "jpg", "svg", "pdf", "md", "html", "txt", "xlsx", "csv", "srt", "folder", "zip", "tgz", "mp4", "avi", "wav", "mp3", "gif", "docx", "pptx",
+        "psd", "tga", "jxl", "jp2", "exr", "qoi", "dds", "ppm", "subs", "m2ts", "wv", "ac3", "tex", "rst", "org", "ipynb");
 
     [Theory]
     [MemberData(nameof(SampleKeys))]
@@ -184,6 +217,10 @@ public class IntegrationTests : IClassFixture<IntegrationTests.Samples>
                 catch (ConversionException ex) when (key is "pdf" && !_s.PdfHasText && ex.Message.Contains("contains no text"))
                 {
                     output.WriteLine($"ok   {op.Id} (expected: image-only PDF has no text)");
+                }
+                catch (ConversionException ex) when (op.Id == "video.subtitles" && key != "subs" && ex.Message.Contains("no text subtitles"))
+                {
+                    output.WriteLine($"ok   {op.Id} (expected: no subtitles in this sample)");
                 }
                 catch (Exception ex)
                 {

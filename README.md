@@ -116,9 +116,17 @@
 <summary><b>Форматы и доп. программы</b></summary>
 <br />
 
-Изображения (включая RAW с камер: CR2/CR3, NEF, ARW, RAF, DNG, ORF, RW2 и др.), аудио, видео, PDF, документы, таблицы, презентации, субтитры и архивы. Доступные операции зависят от типа файла.
+| Тип | Открывает | Сохраняет |
+| --- | --- | --- |
+| Изображения | JPG, PNG, WebP, AVIF, HEIC, TIFF, BMP, GIF, ICO, JPEG XL, JPEG 2000, PSD/PSB, TGA, QOI, DDS, PPM, PCX, OpenEXR, HDR, CUR, APNG, MNG, GIMP XCF, DICOM; RAW с камер (CR2/CR3, NEF, ARW, RAF, DNG, ORF, RW2 и др.); вектор SVG, SVGZ, EMF, WMF | JPG, PNG, WebP, AVIF, JPEG XL, TIFF, BMP, GIF, ICO, PDF |
+| Видео | MP4, MOV, MKV, WebM, AVI, WMV, FLV, MPEG, TS/MTS, M2TS, 3GP, OGV, VOB, MXF, DivX, ASF, RM, F4V | MP4 (H.264 и HEVC), MOV, MKV, WebM, GIF, MP3, M4A; субтитры из видео в SRT |
+| Аудио | MP3, M4A, AAC, WAV, FLAC, OGG, Opus, AIFF, WMA, AMR, APE, WavPack, TTA, DSD (DSF/DFF), DTS, AC3, E-AC3, MKA, CAF, AU, VOC, W64 | MP3, M4A, WAV, FLAC, OGG, Opus, AIFF |
+| Документы | DOCX, DOC, ODT, RTF, Markdown, HTML, TXT, EPUB, LaTeX, reStructuredText, Org, AsciiDoc, Typst, Jupyter, FB2, Textile, MediaWiki, DocBook, OPML, Djot | DOCX, PDF, ODT, Markdown, HTML, TXT, EPUB, RTF |
+| PDF, таблицы, презентации, субтитры, архивы | PDF; XLSX, XLS, ODS, CSV, TSV; PPTX, PPT, ODP; SRT, VTT; ZIP, 7Z, RAR, TAR и сжатые TAR | изображения, текст, DOCX, PPTX; XLSX, CSV, TSV, ODS, PDF; PDF и картинки слайдов; SRT, VTT, TXT; ZIP, TAR, TAR.GZ |
 
-Pandoc для документов (DOCX, Markdown, HTML, EPUB, RTF, TXT) и FFmpeg для аудио и видео скачиваются при первой конвертации, которой они нужны, с проверкой SHA-256. LibreOffice для части операций Office/PDF устанавливается отдельно. Пока чего-то не хватает, настройки напоминают об этом плашкой с переходом в «Доп. программы». Обработка файлов локальная.
+Доступные операции зависят от типа файла. [План добавления остальных форматов](docs/FORMATS-ROADMAP.md).
+
+Pandoc для документов и разметки и FFmpeg для аудио и видео скачиваются при первой конвертации, которой они нужны, с проверкой SHA-256. LibreOffice для части операций Office/PDF устанавливается отдельно. Пока чего-то не хватает, настройки напоминают об этом плашкой с переходом в «Доп. программы». Обработка файлов локальная.
 
 </details>
 

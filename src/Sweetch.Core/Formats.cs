@@ -16,12 +16,27 @@ public static class Formats
         ["oga"] = "ogg",
         ["tgz"] = "tar.gz",
         ["m4v"] = "mp4",
+        ["pgm"] = "ppm",
+        ["pbm"] = "ppm",
+        ["pnm"] = "ppm",
+        ["j2k"] = "jp2",
+        ["jpf"] = "jp2",
+        ["dcm"] = "dicom",
+        ["m2t"] = "m2ts",
+        ["rmvb"] = "rm",
+        ["latex"] = "tex",
+        ["rest"] = "rst",
+        ["asciidoc"] = "adoc",
+        ["mediawiki"] = "wiki",
+        ["dbk"] = "docbook",
     };
 
     private static readonly string[] DoubleExtensions = [".tar.gz", ".tar.bz2", ".tar.xz"];
 
-    public static readonly HashSet<string> Images = Set("jpg", "png", "webp", "heic", "tiff", "avif", "bmp", "gif", "svg", "ico");
-    public static readonly string[] ImageOutputs = ["jpg", "png", "webp", "avif", "tiff", "ico", "pdf"];
+    public static readonly HashSet<string> Images = Set("jpg", "png", "webp", "heic", "tiff", "avif", "bmp", "gif", "svg", "ico",
+        "psd", "psb", "tga", "ppm", "pcx", "qoi", "dds", "jxl", "jp2", "exr", "hdr", "cur", "apng", "mng", "xcf", "dicom",
+        "svgz", "emf", "wmf");
+    public static readonly string[] ImageOutputs = ["jpg", "png", "webp", "avif", "jxl", "tiff", "bmp", "gif", "ico", "pdf"];
 
     /// <summary>Camera RAW, decoded by LibRaw inside Magick.NET. Read-only: edits are saved as JPG.</summary>
     public static readonly HashSet<string> Raw = Set(
@@ -31,16 +46,21 @@ public static class Formats
     /// <summary>Everything the image operations accept: regular images plus camera RAW.</summary>
     public static readonly HashSet<string> ImageInputs = new(Images.Concat(Raw), StringComparer.OrdinalIgnoreCase);
 
-    public static readonly HashSet<string> Audio = Set("mp3", "m4a", "aac", "wav", "flac", "ogg", "opus", "aiff", "wma");
+    public static readonly HashSet<string> Audio = Set("mp3", "m4a", "aac", "wav", "flac", "ogg", "opus", "aiff", "wma",
+        "amr", "ape", "wv", "tta", "dsf", "dff", "dts", "ac3", "eac3", "mka", "caf", "au", "voc", "w64");
     public static readonly string[] AudioOutputs = ["mp3", "m4a", "wav", "flac", "ogg", "opus", "aiff"];
 
-    public static readonly HashSet<string> Video = Set("mp4", "mov", "mkv", "webm", "avi", "wmv", "flv", "mpg", "mpeg", "3gp", "ts", "mts");
-    public static readonly string[] VideoOutputs = ["mp4", "mov", "mkv", "webm", "gif", "mp3"];
+    public static readonly HashSet<string> Video = Set("mp4", "mov", "mkv", "webm", "avi", "wmv", "flv", "mpg", "mpeg", "3gp", "ts", "mts",
+        "ogv", "vob", "m2ts", "mxf", "divx", "asf", "rm", "f4v");
+    public static readonly string[] VideoOutputs = ["mp4", "hevc", "mov", "mkv", "webm", "gif", "mp3", "m4a"];
 
     public static readonly HashSet<string> Pdf = Set("pdf");
 
-    public static readonly HashSet<string> Documents = Set("docx", "doc", "odt", "rtf", "md", "txt", "html", "epub");
-    public static readonly HashSet<string> PandocInputs = Set("docx", "odt", "rtf", "md", "txt", "html", "epub");
+    /// <summary>Markup only pandoc reads (LaTeX, reStructuredText, Org, Jupyter, FictionBook…). Declared before the sets that use it.</summary>
+    public static readonly string[] Markup = ["tex", "rst", "org", "adoc", "typ", "ipynb", "fb2", "textile", "wiki", "docbook", "opml", "djot"];
+
+    public static readonly HashSet<string> Documents = Set(["docx", "doc", "odt", "rtf", "md", "txt", "html", "epub", .. Markup]);
+    public static readonly HashSet<string> PandocInputs = Set(["docx", "odt", "rtf", "md", "txt", "html", "epub", .. Markup]);
     public static readonly string[] DocumentOutputs = ["docx", "pdf", "odt", "md", "html", "txt", "epub", "rtf"];
 
     public static readonly HashSet<string> Slides = Set("pptx", "ppt", "odp");

@@ -106,9 +106,14 @@ public static class Catalog
     {
         foreach (var target in Formats.VideoOutputs)
         {
-            ops.Add(new PerFileOperation($"video.to.{target}", WheelKind.Convert, Formats.Display(target), target == "mp3" ? Glyphs.Audio : Glyphs.Video, Formats.Video,
-                async (item, ctx, p) => [await FfmpegBackend.ConvertAsync(item, target, ctx, p)], targetFormat: target,
-                subtitle: target switch { "mp3" => T("audio only", "только звук"), "gif" => T("animation", "анимация"), _ => null })
+            var audioOnly = target is "mp3" or "m4a";
+            ops.Add(new PerFileOperation($"video.to.{target}", WheelKind.Convert, Formats.Display(target), audioOnly ? Glyphs.Audio : Glyphs.Video, Formats.Video,
+                async (item, ctx, p) => [target == "hevc"
+                    // HEVC is a codec, not a container: the file is an .mp4.
+                    ? await OutputPaths.ProduceAsync(ctx.OutputDirFor(item.Path), item.BaseName, "mp4", tmp =>
+                        FfmpegBackend.RunAsync(ctx, [item.Path], FfmpegBackend.CodecArgs("hevc", ctx.Settings), tmp, p))
+                    : await FfmpegBackend.ConvertAsync(item, target, ctx, p)], targetFormat: target,
+                subtitle: target switch { _ when audioOnly => T("audio only", "только звук"), "gif" => T("animation", "анимация"), "hevc" => T("H.265, smaller", "H.265, меньше"), _ => null })
             { Requires = [ExternalTool.Ffmpeg] });
         }
 
@@ -129,6 +134,8 @@ public static class Catalog
             outputFormat: _ => "mp4", subtitle: "2×");
         Ffmpeg(ops, "video.thumbnail", T("Thumbnail", "Миниатюра"), Glyphs.Camera, Formats.Video, T("thumbnail", "миниатюра"),
             (item, ctx) => ["-vf", "thumbnail=150", "-frames:v", "1", "-update", "1"], outputFormat: _ => "png", subtitle: T("PNG frame", "кадр PNG"));
+        Ffmpeg(ops, "video.subtitles", T("Subtitles", "Субтитры"), Glyphs.Subtitles, Formats.Video, T("subtitles", "субтитры"),
+            (item, ctx) => ["-map", "0:s:0", "-c:s", "srt"], outputFormat: _ => "srt", subtitle: T("to SRT", "в SRT"));
     }
 
     private static string[] H264(int crf, string preset, string? filter, string? audioBitrate)
