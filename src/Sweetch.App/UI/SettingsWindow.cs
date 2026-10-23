@@ -436,6 +436,17 @@ internal sealed partial class SettingsWindow : Window
                 _settings.RevealResult = v;
                 Save();
             }), glyph: Glyphs.FolderOpen));
+        var apps = new TextBox { Text = string.Join(", ", _settings.DragApps), TextWrapping = TextWrapping.Wrap, VerticalContentAlignment = VerticalAlignment.Center };
+        apps.LostFocus += (_, _) =>
+        {
+            _settings.DragApps = [.. apps.Text.Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)];
+            Save();
+        };
+        var appsBelow = new StackPanel();
+        appsBelow.Children.Add(apps);
+        root.Children.Add(Card(T("Open the wheel when dragging from", "Открывать колесо при перетаскивании из"),
+            T("Program names (as in Task Manager → Details, without .exe), comma-separated. Empty: from anywhere.", "Имена программ (как в Диспетчере задач → «Подробности», без .exe) через запятую. Пусто — откуда угодно."),
+            null, appsBelow, Glyphs.FolderOpen));
 
         root.Children.Add(SectionHeader(T("System", "Система")));
         root.Children.Add(Card(T("Start when I sign in", "Запускать при входе в систему"), null,

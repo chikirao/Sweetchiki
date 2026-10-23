@@ -71,6 +71,15 @@ public sealed class AppSettings
 
     public Dictionary<string, string>? LastParameters { get; set; }
 
+    /// <summary>
+    /// Programs (process names) a drag must start in to open a wheel: file managers. Elsewhere a drag is a layer, a
+    /// window or a selection, and the program's own cursors would pass for a file drag.
+    /// </summary>
+    public List<string> DragApps { get; set; } = [.. DefaultDragApps];
+
+    public static readonly string[] DefaultDragApps =
+        ["explorer", "totalcmd", "totalcmd64", "doublecmd", "Files", "XYplorer", "dopus", "OneCommander", "FreeCommander", "FarManager", "Far"];
+
     /// <summary>Look for a new release on GitHub. A new name, so settings saved while updates were off don't keep them off.</summary>
     public bool AutoUpdateCheck { get; set; } = true;
 

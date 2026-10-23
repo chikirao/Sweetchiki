@@ -42,7 +42,7 @@ jobs:
         run: dotnet test tests/Sweetch.Tests -c Release
       - name: Build
         shell: pwsh
-        run: ./build.ps1 -Version $(if ($env:GITHUB_REF_TYPE -eq 'tag') { $env:GITHUB_REF_NAME.TrimStart('v') } else { '2.1.1' })
+        run: ./build.ps1 -Version $(if ($env:GITHUB_REF_TYPE -eq 'tag') { $env:GITHUB_REF_NAME.TrimStart('v') } else { '2.1.2' })
       - name: Verify packaged app
         shell: pwsh
         run: |
@@ -53,7 +53,7 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force artifacts | Out-Null
-          $version = if ($env:GITHUB_REF_TYPE -eq 'tag') { $env:GITHUB_REF_NAME.TrimStart('v') } else { '2.1.1' }
+          $version = if ($env:GITHUB_REF_TYPE -eq 'tag') { $env:GITHUB_REF_NAME.TrimStart('v') } else { '2.1.2' }
           Compress-Archive -Path ./publish/* -DestinationPath "./artifacts/Sweetch-$version-win-x64.zip"
           ./scripts/build-installer.ps1 -Version $version
           ./scripts/verify-installer.ps1 -Installer "./artifacts/Sweetch-$version-Setup-win-x64.exe"
