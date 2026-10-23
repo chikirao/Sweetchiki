@@ -160,8 +160,26 @@ internal sealed class WheelController
                 open.SwitchTo(wheel);
             return;
         }
-        if (_input.IsDragging)
+        // A window moved by its title bar or a text selection is a drag too, but there is nothing to convert.
+        // Only a drag that started in a file manager (the foreground window stays its own while dragging, even over Figma).
+        if (_input.IsDragging && Win32.IsDragAndDrop() && InDragApp())
             Open(WheelMode.Drag, wheel, null, _input.Cursor);
+    }
+
+    private bool InDragApp()
+    {
+        if (_settings.DragApps.Count == 0)
+            return true; // an empty list: anywhere
+        try
+        {
+            Win32.GetWindowThreadProcessId(Win32.GetForegroundWindow(), out var pid);
+            using var process = System.Diagnostics.Process.GetProcessById((int)pid);
+            return _settings.DragApps.Any(a => string.Equals(a.Trim().Replace(".exe", "", StringComparison.OrdinalIgnoreCase), process.ProcessName, StringComparison.OrdinalIgnoreCase));
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     public void OnHotkey()
